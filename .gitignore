@@ -1,0 +1,10 @@
+*.exe
+*.o
+*.zip
+
+.vscode
+.gdbinit
+
+# Output files of the test program
+out.gif
+pick.gif
