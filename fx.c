@@ -18,6 +18,7 @@ static int V_Width = 0, V_Height = 0;
 
 static double M_Model[16], M_View[16], M_Projection[16];
 static double M_Xform[16];
+static double M_NormalXform[16];
 
 static int Xform_dirty = 1;
 
@@ -27,10 +28,16 @@ static fx_mode Mode;
 static int Begun = 0;
 
 #define VARRAY_SIZE	32
+/* Vertex positions (transformed) */
 static double VArray[VARRAY_SIZE][4];
 static int NVerts = 0;
+/* Vertex texture coordinates */
 static double TArray[VARRAY_SIZE][2];
 static int NTexs = 0;
+/* Vertex normals */
+static double NArray[VARRAY_SIZE][3];
+static int NNorms = 0;
+/* Vertex colors */
 static double CArray[VARRAY_SIZE][3];
 static int NCols = 0;
 
@@ -43,12 +50,24 @@ static int Blend = 0;
 static double *ZBuf = NULL;
 #define ZBUF(X,Y) ZBuf[(Y) * V_Width + (X)]
 
+static int Lighting = 0;
+static double AmbientColor[3] = {0.5, 0.5, 0.5};
+static double DiffuseColor[3] = {0.5, 0.5, 0.5};
+static double DiffuseDirection[3] = {0, 1, 0};
+
 static int Fog_Enable = 0;
 static double Fog_Near = 0.5, Fog_Far = 1.0; 
 static double Fog_Color[] = {1.0, 1.0, 1.0};
 
 #define MIN(a,b) ((a<b)?a:b)
 #define MAX(a,b) ((a>b)?a:b)
+
+static vec3_t vec3_clamp01(vec3_t v) {
+    v[0] = v[0] > 1 ? 1 : (v[0] < 0 ? 0 : v[0]);    
+    v[1] = v[1] > 1 ? 1 : (v[1] < 0 ? 0 : v[1]);    
+    v[2] = v[2] > 1 ? 1 : (v[2] < 0 ? 0 : v[2]);
+    return v;
+}
 
 void fx_set_viewport(Bitmap *target) {
     
@@ -64,7 +83,7 @@ void fx_set_viewport(Bitmap *target) {
 
 	double ratio = (double)V_Width / V_Height;
 
-	mat4_perspective(60.0, ratio, 1, 10.0, M_Projection);
+	mat4_perspective(60.0, ratio, 0.5, 10.0, M_Projection);
 }
 
 void fx_cleanup() {
@@ -83,9 +102,10 @@ void fx_cleanup() {
     Backface = 0;
     Begun = 0;
 
-    NVerts = NTexs = NCols = 0;
+    NVerts = NTexs = NCols = NNorms = 0;
 
     Transparent = 0;
+    Lighting = 0;
     Blend = 0;
     Fog_Enable = 0;
 }
@@ -138,6 +158,8 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
     if(xmax >= Target->clip.x1) xmax = Target->clip.x1 - 1;
     if(ymin < Target->clip.y0) ymin = Target->clip.y0; 
     if(ymax >= Target->clip.y1) ymax = Target->clip.y1 - 1;
+
+    int lighting = (Lighting && NNorms == NVerts) || (NCols == NVerts);
 
     unsigned int trans_color;
     int tex_x, tex_y, tex_w, tex_h;
@@ -194,7 +216,7 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
                     texel[0] = texel[1] = texel[2] = 1.0;
                 }
 
-                if(NCols == NVerts) {
+                if(lighting) {
                     rgb[0] = c0[0] * bc_clip[0] + c1[0] * bc_clip[1] + c2[0] * bc_clip[2];
                     rgb[1] = c0[1] * bc_clip[0] + c1[1] * bc_clip[1] + c2[1] * bc_clip[2]; 
                     rgb[2] = c0[2] * bc_clip[0] + c1[2] * bc_clip[1] + c2[2] * bc_clip[2]; 
@@ -351,6 +373,8 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
     } // else wholy outside plane
 }
 
+static void compute_lighting(const vec3_t n0, vec3_t out);
+
 static void triangle(int v0i, int v1i, int v2i) {
     assert(v0i >= 0 && v0i < NVerts);
     assert(v1i >= 0 && v1i < NVerts);
@@ -366,23 +390,85 @@ static void triangle(int v0i, int v1i, int v2i) {
         vec3_subtract(vec3_scale(v[1],1.0/v[1][3], tmp1), tmp0, p);
         vec3_subtract(vec3_scale(v[2],1.0/v[2][3], tmp1), tmp0, q);
         vec3_cross(p, q, nrm);
-        if(nrm[2] > 0)
+        if(nrm[2] < 0)
             return;
     }
+
+    vec3_t color[3];
+    double vcolors[3][3];
+    if(Lighting) {
+        if(NNorms == NVerts) {
+            compute_lighting(NArray[v0i], vcolors[0]);
+            compute_lighting(NArray[v1i], vcolors[1]);
+            compute_lighting(NArray[v2i], vcolors[2]);
+        } else {
+            double black[] = {0,0,0};
+            vec3_set(black, vcolors[0]);
+            vec3_set(black, vcolors[1]);
+            vec3_set(black, vcolors[2]);
+        }
+
+        color[0] = vcolors[0];
+        color[1] = vcolors[1];
+        color[2] = vcolors[2];        
+
+        if(NCols == NVerts) {
+            vec3_add(color[0], CArray[v0i], NULL);            
+            vec3_add(color[1], CArray[v1i], NULL);            
+            vec3_add(color[2], CArray[v2i], NULL);           
+            vec3_clamp01(color[0]);
+            vec3_clamp01(color[1]);
+            vec3_clamp01(color[2]); 
+        }
+
+    } else {
+        color[0] = CArray[v0i];
+        color[1] = CArray[v1i];
+        color[2] = CArray[v2i];
+    }
+
     clip_to_plane(  VArray[v0i], VArray[v1i], VArray[v2i],
                     TArray[v0i], TArray[v1i], TArray[v2i],
-                    CArray[v0i], CArray[v1i], CArray[v2i], 0);
+                    color[0], color[1], color[2], 0);
+}
+
+static void compute_lighting(const vec3_t n0, vec3_t out) {
+    double diffuse[3];
+    double n[3], m[3];
+    
+    mat4_multiplyVec3(M_NormalXform, n0, n);
+
+    double intensity = vec3_dot(n, vec3_negate(DiffuseDirection, m));
+    if(intensity < 0) intensity = 0;
+    vec3_scale(DiffuseColor, intensity, diffuse);
+
+    vec3_add(diffuse, AmbientColor, out);
+
+    vec3_clamp01(out);
+}
+
+static void compute_transforms() {
+    if(Xform_dirty) {
+        /* Multiply the Model, View and Projection matrices to get the transformation matrix */
+        mat4_multiply(mat4_multiply(M_Projection, M_View, M_Xform), M_Model, NULL);
+
+        /* The matrix for transforming normals is the inverse transpose of the Model matrix
+        http://www.songho.ca/opengl/gl_normaltransform.html
+        https://paroj.github.io/gltut/Illumination/Tut09%20Normal%20Transformation.html */
+        mat4_transpose(mat4_inverse(M_Model, M_NormalXform), NULL);
+        Xform_dirty = 0;
+    }
 }
 
 void fx_begin(fx_mode mode) {
     assert(Target);
-
-    if(Xform_dirty)
-        mat4_multiply(mat4_multiply(M_Projection, M_View, M_Xform), M_Model, NULL);
+    
+    compute_transforms();    
 
     Mode = mode;
     NVerts = 0;
     NTexs = 0;
+    NNorms = 0;
     NCols = 0;
     Begun = 1;
 }
@@ -391,8 +477,8 @@ void fx_end() {
     int i;
     switch(Mode) {
         case FX_TRIANGLES:
-        for(i = 0; i + 2 < NVerts; i+= 3) {            
-            triangle(i, i+1, i+2);
+        for(i = 2; i < NVerts; i+= 3) {            
+            triangle(i - 2, i - 1, i);
         }
         break;
         case FX_TRIANGLE_STRIP:        
@@ -438,13 +524,30 @@ void fx_vertex_v3(vec3_t v) {
 void fx_texcoord(double u, double v) {
     assert(NTexs < VARRAY_SIZE);
     assert(Begun);
-    double *T = TArray[NTexs];
+    vec2_t T = TArray[NTexs];
     T[0] = u;
     T[1] = v;
     NTexs++;
 }
 
-void fx_vcolor(double r, double g, double b) {
+void fx_normal(double x, double y, double z) {    
+    assert(NNorms < VARRAY_SIZE); // If this fails, you need to increase VARRAY_SIZE
+    assert(Begun); // Make sure you're between `fx_begin()` and `fx_end()` calls
+    vec3_t V = NArray[NNorms];
+    V[0] = x;
+    V[1] = y;
+    V[2] = z;
+    NNorms++;    
+}
+void fx_normal_v3(vec3_t v) {
+    assert(NNorms < VARRAY_SIZE); 
+    assert(Begun);
+    vec3_t V = NArray[NNorms];
+    vec3_set(v, V);
+    NNorms++;    
+}
+
+void fx_color(double r, double g, double b) {
     assert(NCols < VARRAY_SIZE); 
     assert(Begun);
     vec3_t C = CArray[NCols];
@@ -487,6 +590,31 @@ void fx_transparent(int enabled) {
     Transparent = enabled;
 }
 
+void fx_lighting(int enabled) {
+    Lighting = enabled;
+}
+
+void fx_set_ambient(double r, double g, double b) {
+    AmbientColor[0] = r;    
+    AmbientColor[1] = g;    
+    AmbientColor[2] = b;
+    vec3_clamp01(AmbientColor);
+}
+
+void fx_set_diffuse_color(double r, double g, double b) {
+    DiffuseColor[0] = r;   
+    DiffuseColor[1] = g; 
+    DiffuseColor[2] = b;
+    vec3_clamp01(DiffuseColor);
+}
+
+void fx_set_diffuse_direction(double x, double y, double z) {
+    DiffuseDirection[0] = x;    
+    DiffuseDirection[1] = y;    
+    DiffuseDirection[2] = z;
+    vec3_normalize(DiffuseDirection, NULL);
+}
+
 void fx_backface(int enabled) {
     Backface = enabled;
 }
@@ -496,8 +624,9 @@ void fx_fog(int enabled) {
 }
 void fx_fog_params(double r, double g, double b, double near, double far) {
     Fog_Color[0] = r;    
-    Fog_Color[1] = g;    
-    Fog_Color[2] = b;    
+    Fog_Color[1] = g;
+    Fog_Color[2] = b;
+    vec3_clamp01(Fog_Color);
     Fog_Near = near;
     Fog_Far = far;
 }

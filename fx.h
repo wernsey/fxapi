@@ -15,9 +15,10 @@ void fx_end();
 
 void fx_vertex(double x, double y, double z);
 void fx_vertex_v3(vec3_t v);
-
 void fx_texcoord(double u, double v);
-void fx_vcolor(double r, double g, double b);
+void fx_normal(double x, double y, double z);
+void fx_normal_v3(vec3_t v);
+void fx_color(double r, double g, double b);
 
 mat4_t fx_get_model();
 void fx_set_model(mat4_t m);
@@ -28,6 +29,11 @@ void fx_set_projection(mat4_t m);
 
 void fx_set_texture(Bitmap *texture);
 void fx_transparent(int enabled);
+
+void fx_lighting(int enabled);
+void fx_set_ambient(double r, double g, double b);
+void fx_set_diffuse_color(double r, double g, double b);
+void fx_set_diffuse_direction(double x, double y, double z);
 
 void fx_backface(int enabled);
 
