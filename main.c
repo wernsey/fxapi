@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 	fx_vertex(2, 1.5, 0);  fx_texcoord(1, 0); fx_vcolor(1, 1, 1);
 	fx_vertex(2, -1, 0);   fx_texcoord(1, 1); fx_vcolor(0, 1, 0);
 	fx_end();
-#elif 1
+#elif 0
 	fx_begin(FX_TRIANGLE_STRIP);
 	fx_vertex(-1.5, 1.5, 0); fx_texcoord(0, 0);
 	fx_vertex(-1.5, -1.5, 0); fx_texcoord(0, 1);
@@ -134,70 +134,75 @@ int main(int argc, char *argv[]) {
 	fx_end();
 #else
 	
+	fx_lighting(1);
+	fx_set_diffuse_direction(-0.5, -1.0, -0.5);
+	fx_set_diffuse_color(1.0, 1, 1);
+	fx_set_ambient(0.5, 0.5, 0.5);
+
+	double normals[8][3];
+	int i;
+	for(i = 0; i < 8; i++) {
+		vec3_normalize(vertices[i], normals[i]);
+	}
+	
 	// bottom	
-	bm_set_color(screen, 0xFF0000);
 	fx_begin(FX_TRIANGLES);
-		fx_vertex_v3(vertices[1]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[0]); fx_texcoord(1, 0);
-		fx_vertex_v3(vertices[4]); fx_texcoord(0, 0);		
-		fx_vertex_v3(vertices[5]); fx_texcoord(0, 1);
-		fx_vertex_v3(vertices[1]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[4]); fx_texcoord(0, 0);
+		fx_vertex_v3(vertices[1]); fx_texcoord(0, 0); fx_normal_v3(normals[1]);
+		fx_vertex_v3(vertices[0]); fx_texcoord(1, 0); fx_normal_v3(normals[0]);
+		fx_vertex_v3(vertices[4]); fx_texcoord(1, 1); fx_normal_v3(normals[4]);
+		fx_vertex_v3(vertices[5]); fx_texcoord(0, 1); fx_normal_v3(normals[5]);
+		fx_vertex_v3(vertices[1]); fx_texcoord(0, 0); fx_normal_v3(normals[1]);
+		fx_vertex_v3(vertices[4]); fx_texcoord(1, 1); fx_normal_v3(normals[4]);
 	fx_end();
 
 	// top
-	bm_set_color(screen, 0x00FF00);
 	fx_begin(FX_TRIANGLES);
-		fx_vertex_v3(vertices[2]); fx_texcoord(0, 1);
-		fx_vertex_v3(vertices[3]); fx_texcoord(0, 0);
-		fx_vertex_v3(vertices[6]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[7]); fx_texcoord(1, 0);
-		fx_vertex_v3(vertices[6]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[3]); fx_texcoord(0, 0);
+		fx_vertex_v3(vertices[2]); fx_texcoord(0, 0); fx_normal_v3(normals[2]);
+		fx_vertex_v3(vertices[3]); fx_texcoord(0, 1); fx_normal_v3(normals[3]);
+		fx_vertex_v3(vertices[6]); fx_texcoord(1, 0); fx_normal_v3(normals[6]);
+		fx_vertex_v3(vertices[7]); fx_texcoord(1, 1); fx_normal_v3(normals[7]);
+		fx_vertex_v3(vertices[6]); fx_texcoord(1, 0); fx_normal_v3(normals[6]);
+		fx_vertex_v3(vertices[3]); fx_texcoord(0, 1); fx_normal_v3(normals[3]);
+	fx_end();
+
+	// back 
+	fx_begin(FX_TRIANGLES);
+		fx_vertex_v3(vertices[0]); fx_texcoord(1, 1); fx_normal_v3(normals[0]);
+		fx_vertex_v3(vertices[2]); fx_texcoord(1, 0); fx_normal_v3(normals[2]);
+		fx_vertex_v3(vertices[4]); fx_texcoord(0, 1); fx_normal_v3(normals[4]);
+		fx_vertex_v3(vertices[4]); fx_texcoord(0, 1); fx_normal_v3(normals[4]);
+		fx_vertex_v3(vertices[2]); fx_texcoord(1, 0); fx_normal_v3(normals[2]);
+		fx_vertex_v3(vertices[6]); fx_texcoord(0, 0); fx_normal_v3(normals[6]);
 	fx_end();
 
 	// front
-	bm_set_color(screen, 0x0000FF);
 	fx_begin(FX_TRIANGLES);
-		fx_vertex_v3(vertices[0]); fx_texcoord(0, 1);
-		fx_vertex_v3(vertices[2]); fx_texcoord(0, 0);
-		fx_vertex_v3(vertices[4]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[4]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[2]); fx_texcoord(0, 0);
-		fx_vertex_v3(vertices[6]); fx_texcoord(1, 0);
-	fx_end();
-
-	// back
-	bm_set_color(screen, 0x00FFFF);
-	fx_begin(FX_TRIANGLES);
-		fx_vertex_v3(vertices[7]); fx_texcoord(0, 0);
-		fx_vertex_v3(vertices[3]); fx_texcoord(1, 0);
-		fx_vertex_v3(vertices[5]); fx_texcoord(0, 1);
-		fx_vertex_v3(vertices[5]); fx_texcoord(0, 1);
-		fx_vertex_v3(vertices[3]); fx_texcoord(1, 0);
-		fx_vertex_v3(vertices[1]); fx_texcoord(1, 1);
+		fx_vertex_v3(vertices[7]); fx_texcoord(1, 0); fx_normal_v3(normals[7]);
+		fx_vertex_v3(vertices[3]); fx_texcoord(0, 0); fx_normal_v3(normals[3]);
+		fx_vertex_v3(vertices[5]); fx_texcoord(1, 1); fx_normal_v3(normals[5]);
+		fx_vertex_v3(vertices[5]); fx_texcoord(1, 1); fx_normal_v3(normals[5]);
+		fx_vertex_v3(vertices[3]); fx_texcoord(0, 0); fx_normal_v3(normals[3]);
+		fx_vertex_v3(vertices[1]); fx_texcoord(0, 1); fx_normal_v3(normals[1]);
 	fx_end();
 
 	// left
-	bm_set_color(screen, 0xFFFF00);
 	fx_begin(FX_TRIANGLES);
-		fx_vertex_v3(vertices[0]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[1]); fx_texcoord(0, 1);
-		fx_vertex_v3(vertices[3]); fx_texcoord(0, 0);
-		fx_vertex_v3(vertices[2]); fx_texcoord(1, 0);
-		fx_vertex_v3(vertices[0]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[3]); fx_texcoord(0, 0);
+		fx_vertex_v3(vertices[0]); fx_texcoord(0, 1); fx_normal_v3(normals[0]);
+		fx_vertex_v3(vertices[1]); fx_texcoord(1, 1); fx_normal_v3(normals[1]);
+		fx_vertex_v3(vertices[3]); fx_texcoord(1, 0); fx_normal_v3(normals[3]);
+		fx_vertex_v3(vertices[2]); fx_texcoord(0, 0); fx_normal_v3(normals[2]);
+		fx_vertex_v3(vertices[0]); fx_texcoord(0, 1); fx_normal_v3(normals[0]);
+		fx_vertex_v3(vertices[3]); fx_texcoord(1, 0); fx_normal_v3(normals[3]);
 	fx_end();
 
 	// right
-	bm_set_color(screen, 0xFF00FF);
 	fx_begin(FX_TRIANGLES);
-		fx_vertex_v3(vertices[6]); fx_texcoord(0, 0);
-		fx_vertex_v3(vertices[7]); fx_texcoord(1, 0);
-		fx_vertex_v3(vertices[4]); fx_texcoord(0, 1);
-		fx_vertex_v3(vertices[5]); fx_texcoord(1, 1);
-		fx_vertex_v3(vertices[4]); fx_texcoord(0, 1);
-		fx_vertex_v3(vertices[7]); fx_texcoord(1, 0);
+		fx_vertex_v3(vertices[6]); fx_texcoord(1, 0); fx_normal_v3(normals[6]);
+		fx_vertex_v3(vertices[7]); fx_texcoord(0, 0); fx_normal_v3(normals[7]);
+		fx_vertex_v3(vertices[4]); fx_texcoord(1, 1); fx_normal_v3(normals[4]);
+		fx_vertex_v3(vertices[5]); fx_texcoord(0, 1); fx_normal_v3(normals[5]);
+		fx_vertex_v3(vertices[4]); fx_texcoord(1, 1); fx_normal_v3(normals[4]);
+		fx_vertex_v3(vertices[7]); fx_texcoord(0, 0); fx_normal_v3(normals[7]);
 	fx_end();
 #endif
 
