@@ -7,6 +7,8 @@
 #include <math.h>
 #include <assert.h>
 
+#include "gl-matrix/gl-matrix.h"
+
 #include "bmp.h" 
 
 #include "fx.h"

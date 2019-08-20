@@ -1,14 +1,23 @@
 #ifndef FX_H
 #define FX_H
 
-#include "gl-matrix/gl-matrix.h"
+#ifndef GL_MATRIX_H
+/* #include "gl-matrix/gl-matrix.h" */
+typedef double *vec3_t;
+typedef double *mat4_t;
+#endif
+#ifndef BMP_H
+/* #include "bmp.h" */
+typedef struct Bitmap Bitmap;
+#endif
 
 typedef enum {FX_TRIANGLES, FX_TRIANGLE_STRIP, FX_TRIANGLE_FAN} fx_mode;
 
 void fx_set_viewport(Bitmap *target);
+
 void fx_cleanup();
 
-void fx_clear_zbuf() ;
+void fx_clear_zbuf();
 
 void fx_begin(fx_mode mode);
 void fx_end();
