@@ -29,7 +29,7 @@ static int Backface = 0;
 static fx_mode Mode;
 static int Begun = 0;
 
-#define VARRAY_SIZE	32
+#define VARRAY_SIZE	256
 /* Vertex positions (transformed) */
 static double VArray[VARRAY_SIZE][4];
 static int NVerts = 0;
@@ -85,7 +85,7 @@ void fx_set_viewport(Bitmap *target) {
 
 	double ratio = (double)V_Width / V_Height;
 
-	mat4_perspective(60.0, ratio, 0.5, 10.0, M_Projection);
+	mat4_perspective(60.0, ratio, 0.2, 10.0, M_Projection);
 }
 
 void fx_cleanup() {
@@ -484,11 +484,11 @@ void fx_end() {
         }
         break;
         case FX_TRIANGLE_STRIP:        
-        for(i = 2; i < NVerts; i++) {   
+        for(i = 2; i < NVerts; i++) {
             if(i & 0x1)         
-                triangle(i, i-1, i-2);
-            else
                 triangle(i-2, i-1, i);
+            else
+                triangle(i, i-1, i-2);                
         }
         break;
         case FX_TRIANGLE_FAN:        
