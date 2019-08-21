@@ -9,7 +9,7 @@
 
 #include "gl-matrix/gl-matrix.h"
 
-#include "bmp.h" 
+#include "bmp.h"
 
 #include "fx.h"
 
@@ -58,21 +58,21 @@ static double DiffuseColor[3] = {0.5, 0.5, 0.5};
 static double DiffuseDirection[3] = {0, 1, 0};
 
 static int Fog_Enable = 0;
-static double Fog_Near = 0.5, Fog_Far = 1.0; 
+static double Fog_Near = 0.5, Fog_Far = 1.0;
 static double Fog_Color[] = {1.0, 1.0, 1.0};
 
 #define MIN(a,b) ((a<b)?a:b)
 #define MAX(a,b) ((a>b)?a:b)
 
 static vec3_t vec3_clamp01(vec3_t v) {
-    v[0] = v[0] > 1 ? 1 : (v[0] < 0 ? 0 : v[0]);    
-    v[1] = v[1] > 1 ? 1 : (v[1] < 0 ? 0 : v[1]);    
+    v[0] = v[0] > 1 ? 1 : (v[0] < 0 ? 0 : v[0]);
+    v[1] = v[1] > 1 ? 1 : (v[1] < 0 ? 0 : v[1]);
     v[2] = v[2] > 1 ? 1 : (v[2] < 0 ? 0 : v[2]);
     return v;
 }
 
 void fx_set_viewport(Bitmap *target) {
-    
+
     Target = target;
 
     V_Width = target->w;
@@ -98,7 +98,7 @@ void fx_cleanup() {
     Texture = NULL;
 
     V_Width = V_Height = 0;
-    
+
     Xform_dirty = 1;
 
     Backface = 0;
@@ -142,7 +142,7 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
     v0[0] = (vp0[0]/vp0[3] + 1.0) * (double)V_Width/2.0;
     v0[1] = (-vp0[1]/vp0[3] + 1.0) * (double)V_Height/2.0;
     v0[2] = vp0[2]/vp0[3];
-    
+
     v1[0] = (vp1[0]/vp1[3] + 1.0) * (double)V_Width/2.0;
     v1[1] = (-vp1[1]/vp1[3] + 1.0) * (double)V_Height/2.0;
     v1[2] = vp1[2]/vp1[3];
@@ -156,9 +156,9 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
     int ymin = (int)MIN(v0[1], MIN(v1[1], v2[1]));
     int ymax = (int)MAX(v0[1], MAX(v1[1], v2[1]));
 
-    if(xmin < Target->clip.x0) xmin = Target->clip.x0; 
+    if(xmin < Target->clip.x0) xmin = Target->clip.x0;
     if(xmax >= Target->clip.x1) xmax = Target->clip.x1 - 1;
-    if(ymin < Target->clip.y0) ymin = Target->clip.y0; 
+    if(ymin < Target->clip.y0) ymin = Target->clip.y0;
     if(ymax >= Target->clip.y1) ymax = Target->clip.y1 - 1;
 
     int lighting = (Lighting && NNorms == NVerts) || (NCols == NVerts);
@@ -174,7 +174,7 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
         assert(tex_x >= 0 && tex_y >= 0);
         assert(tex_w > 0 && tex_h > 0);
     }
-    
+
     int P[2]; // x, y;
     for(P[1] = ymin; P[1]<=ymax; P[1]++) {
         for(P[0] = xmin; P[0]<=xmax; P[0]++) {
@@ -196,11 +196,11 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
             if(ZBUF(P[0],P[1]) > z) {
 
                 unsigned int color;
-                double texel[3], rgb[3];                
-                
-                if(NTexs == NVerts && Texture) {                                        
+                double texel[3], rgb[3];
+
+                if(NTexs == NVerts && Texture) {
                     double u = t0[0] * bc_clip[0] + t1[0] * bc_clip[1] + t2[0] * bc_clip[2];
-                    double v = t0[1] * bc_clip[0] + t1[1] * bc_clip[1] + t2[1] * bc_clip[2]; 
+                    double v = t0[1] * bc_clip[0] + t1[1] * bc_clip[1] + t2[1] * bc_clip[2];
 
                     while(u >= 1.0) u -= 1.0;
                     while(u < 0.0) u += 1.0;
@@ -220,19 +220,19 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
 
                 if(lighting) {
                     rgb[0] = c0[0] * bc_clip[0] + c1[0] * bc_clip[1] + c2[0] * bc_clip[2];
-                    rgb[1] = c0[1] * bc_clip[0] + c1[1] * bc_clip[1] + c2[1] * bc_clip[2]; 
-                    rgb[2] = c0[2] * bc_clip[0] + c1[2] * bc_clip[1] + c2[2] * bc_clip[2]; 
+                    rgb[1] = c0[1] * bc_clip[0] + c1[1] * bc_clip[1] + c2[1] * bc_clip[2];
+                    rgb[2] = c0[2] * bc_clip[0] + c1[2] * bc_clip[1] + c2[2] * bc_clip[2];
 
                     if(rgb[0] < 0.0) rgb[0] = 0.0;
                     if(rgb[0] > 1.0) rgb[0] = 1.0;
                     if(rgb[1] < 0.0) rgb[1] = 0.0;
                     if(rgb[1] > 1.0) rgb[1] = 1.0;
                     if(rgb[2] < 0.0) rgb[2] = 0.0;
-                    if(rgb[2] > 1.0) rgb[2] = 1.0;                   
+                    if(rgb[2] > 1.0) rgb[2] = 1.0;
 
                 } else {
                     rgb[0] = rgb[1] = rgb[2] = 1.0;
-                }                
+                }
 
                 if(Fog_Enable){
                     double fac = (z - Fog_Near)/(Fog_Far - Fog_Near);
@@ -241,9 +241,9 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
                     vec3_lerp(rgb, Fog_Color, fac, NULL);
                 }
 
-                // color = bm_rgb(r * 255, g * 255, b * 255);                                
+                // color = bm_rgb(r * 255, g * 255, b * 255);
                 // color = 255 * (1.0 - z);
-                // color = bm_rgb(color,color,color);                
+                // color = bm_rgb(color,color,color);
 
                 color = bm_rgb(rgb[0] * texel[0], rgb[1] * texel[1], rgb[2] * texel[2]);
 
@@ -252,7 +252,7 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
                     color = ((color >> 1) & 0x007F7F7F) + ((color2 >> 1) & 0x007F7F7F);
                 }
 
-                bm_set(Target, P[0], P[1], color);         
+                bm_set(Target, P[0], P[1], color);
 
                 ZBUF(P[0],P[1]) = z;
 
@@ -269,7 +269,7 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
     bm_line(screen, v1[0], v1[1], v2[0], v2[1]);
     bm_line(screen, v0[0], v0[1], v2[0], v2[1]);
     bm_set_color(screen, csave);
-#endif    
+#endif
 }
 
 static int inside_plane(vec4_t v, vec4_t P) {
@@ -280,7 +280,7 @@ static double intersect(const vec4_t v0, const vec4_t v1, const vec4_t P) {
     double d1 = v1[0] * P[0] + v1[1] * P[1] + v1[2] * P[2] + v1[3] * P[3];
     return d0 / (d0 - d1);
 }
-      
+
 static double ClipPlanes[][4] = {
     {0, 0, 1, 0},   // NEAR
     {0, 0, -1, 1},  // FAR
@@ -300,11 +300,11 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
     vec3_t cp[3];
 
     if(n >= (sizeof ClipPlanes) / (sizeof ClipPlanes[0])) {
-        basic_triangle(v0, v1, v2, t0, t1, t2, c0, c1, c2); 
+        basic_triangle(v0, v1, v2, t0, t1, t2, c0, c1, c2);
         return;
     }
-    P = ClipPlanes[n];    
-    
+    P = ClipPlanes[n];
+
     int inside, in0=0, in1=0, in2=0;
     if(inside_plane(v0, P))
         in0 = 1;
@@ -326,12 +326,12 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
             OUT_IN(0, 1)
             OUT_IN(1, 2)
             OUT_IN(2, 0)
-        } else {            
+        } else {
             OUT_IN(0, 2)
             OUT_IN(1, 0)
             OUT_IN(2, 1)
         }
-        
+
         i1 = intersect(vp[1], vp[0], P);
         vec4_lerp(vp[1], vp[0], i1, vq1);
         vec2_lerp(tp[1], tp[0], i1, tq1);
@@ -354,7 +354,7 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
             OUT_IN(0, 1)
             OUT_IN(1, 2)
             OUT_IN(2, 0)
-        } else {     
+        } else {
             OUT_IN(0, 2)
             OUT_IN(1, 0)
             OUT_IN(2, 1)
@@ -364,7 +364,7 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
         vec4_lerp(vp[0], vp[1], i1, vq1);
         vec2_lerp(tp[0], tp[1], i1, tq1);
         vec3_lerp(cp[0], cp[1], i1, cq1);
-        
+
         i2 = intersect(vp[0], vp[2], P);
         vec4_lerp(vp[0], vp[2], i2, vq2);
         vec2_lerp(tp[0], tp[2], i2, tq2);
@@ -385,7 +385,7 @@ static void triangle(int v0i, int v1i, int v2i) {
     /* Backface culling: */
     if(!Backface) {
         vec4_t v[3] = { VArray[v0i], VArray[v1i], VArray[v2i] };
-        
+
         double p[3], q[3], nrm[3];
         double tmp0[3], tmp1[3];
         vec3_scale(v[0],1.0/v[0][3], tmp0);
@@ -412,15 +412,15 @@ static void triangle(int v0i, int v1i, int v2i) {
 
         color[0] = vcolors[0];
         color[1] = vcolors[1];
-        color[2] = vcolors[2];        
+        color[2] = vcolors[2];
 
         if(NCols == NVerts) {
-            vec3_add(color[0], CArray[v0i], NULL);            
-            vec3_add(color[1], CArray[v1i], NULL);            
-            vec3_add(color[2], CArray[v2i], NULL);           
+            vec3_add(color[0], CArray[v0i], NULL);
+            vec3_add(color[1], CArray[v1i], NULL);
+            vec3_add(color[2], CArray[v2i], NULL);
             vec3_clamp01(color[0]);
             vec3_clamp01(color[1]);
-            vec3_clamp01(color[2]); 
+            vec3_clamp01(color[2]);
         }
 
     } else {
@@ -437,7 +437,7 @@ static void triangle(int v0i, int v1i, int v2i) {
 static void compute_lighting(const vec3_t n0, vec3_t out) {
     double diffuse[3];
     double n[3], m[3];
-    
+
     mat4_multiplyVec3(M_NormalXform, n0, n);
 
     double intensity = vec3_dot(n, vec3_negate(DiffuseDirection, m));
@@ -464,8 +464,8 @@ static void compute_transforms() {
 
 void fx_begin(fx_mode mode) {
     assert(Target);
-    
-    compute_transforms();    
+
+    compute_transforms();
 
     Mode = mode;
     NVerts = 0;
@@ -479,20 +479,20 @@ void fx_end() {
     int i;
     switch(Mode) {
         case FX_TRIANGLES:
-        for(i = 2; i < NVerts; i+= 3) {            
+        for(i = 2; i < NVerts; i+= 3) {
             triangle(i - 2, i - 1, i);
         }
         break;
-        case FX_TRIANGLE_STRIP:        
+        case FX_TRIANGLE_STRIP:
         for(i = 2; i < NVerts; i++) {
-            if(i & 0x1)         
+            if(i & 0x1)
                 triangle(i-2, i-1, i);
             else
-                triangle(i, i-1, i-2);                
+                triangle(i, i-1, i-2);
         }
         break;
-        case FX_TRIANGLE_FAN:        
-        for(i = 2; i < NVerts; i++) {   
+        case FX_TRIANGLE_FAN:
+        for(i = 2; i < NVerts; i++) {
             triangle(0, i, i - 1);
         }
         break;
@@ -500,7 +500,7 @@ void fx_end() {
     Begun = 0;
 }
 
-void fx_vertex(double x, double y, double z) {    
+void fx_vertex(double x, double y, double z) {
     assert(NVerts < VARRAY_SIZE); // If this fails, you need to increase VARRAY_SIZE
     assert(Begun); // Make sure you're between `fx_begin()` and `fx_end()` calls
     vec4_t V = VArray[NVerts];
@@ -509,10 +509,10 @@ void fx_vertex(double x, double y, double z) {
     V[2] = z;
     V[3] = 1.0;
     mat4_multiplyVec4(M_Xform, V, V);
-    NVerts++;    
+    NVerts++;
 }
 void fx_vertex_v3(vec3_t v) {
-    assert(NVerts < VARRAY_SIZE); 
+    assert(NVerts < VARRAY_SIZE);
     assert(Begun);
     vec4_t V = VArray[NVerts];
     V[0] = v[0];
@@ -520,7 +520,7 @@ void fx_vertex_v3(vec3_t v) {
     V[2] = v[2];
     V[3] = 1.0;
     mat4_multiplyVec4(M_Xform, V, V);
-    NVerts++;    
+    NVerts++;
 }
 
 void fx_texcoord(double u, double v) {
@@ -532,25 +532,25 @@ void fx_texcoord(double u, double v) {
     NTexs++;
 }
 
-void fx_normal(double x, double y, double z) {    
+void fx_normal(double x, double y, double z) {
     assert(NNorms < VARRAY_SIZE); // If this fails, you need to increase VARRAY_SIZE
     assert(Begun); // Make sure you're between `fx_begin()` and `fx_end()` calls
     vec3_t V = NArray[NNorms];
     V[0] = x;
     V[1] = y;
     V[2] = z;
-    NNorms++;    
+    NNorms++;
 }
 void fx_normal_v3(vec3_t v) {
-    assert(NNorms < VARRAY_SIZE); 
+    assert(NNorms < VARRAY_SIZE);
     assert(Begun);
     vec3_t V = NArray[NNorms];
     vec3_set(v, V);
-    NNorms++;    
+    NNorms++;
 }
 
 void fx_color(double r, double g, double b) {
-    assert(NCols < VARRAY_SIZE); 
+    assert(NCols < VARRAY_SIZE);
     assert(Begun);
     vec3_t C = CArray[NCols];
     C[0] = r;
@@ -597,22 +597,22 @@ void fx_lighting(int enabled) {
 }
 
 void fx_set_ambient(double r, double g, double b) {
-    AmbientColor[0] = r;    
-    AmbientColor[1] = g;    
+    AmbientColor[0] = r;
+    AmbientColor[1] = g;
     AmbientColor[2] = b;
     vec3_clamp01(AmbientColor);
 }
 
 void fx_set_diffuse_color(double r, double g, double b) {
-    DiffuseColor[0] = r;   
-    DiffuseColor[1] = g; 
+    DiffuseColor[0] = r;
+    DiffuseColor[1] = g;
     DiffuseColor[2] = b;
     vec3_clamp01(DiffuseColor);
 }
 
 void fx_set_diffuse_direction(double x, double y, double z) {
-    DiffuseDirection[0] = x;    
-    DiffuseDirection[1] = y;    
+    DiffuseDirection[0] = x;
+    DiffuseDirection[1] = y;
     DiffuseDirection[2] = z;
     vec3_normalize(DiffuseDirection, NULL);
 }
@@ -625,7 +625,7 @@ void fx_fog(int enabled) {
     Fog_Enable = enabled;
 }
 void fx_fog_params(double r, double g, double b, double near, double far) {
-    Fog_Color[0] = r;    
+    Fog_Color[0] = r;
     Fog_Color[1] = g;
     Fog_Color[2] = b;
     vec3_clamp01(Fog_Color);
