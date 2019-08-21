@@ -31,9 +31,9 @@
 #include "fx.h"
 #endif
 
-static char error_buffer[256];
+static char Obj_Err_Buf[256];
 const char *obj_last_error() {
-    return error_buffer;
+    return Obj_Err_Buf;
 }
 
 typedef struct OBJ_DArray {
@@ -163,7 +163,7 @@ OBJ_MESH *obj_load(const char *filename) {
 	OBJ_MESH *m;
 	FILE *f = fopen(filename, "r");
 	if(!f) {
-        snprintf(error_buffer, sizeof error_buffer, "couldn't open '%s': %s", filename, strerror(errno));
+        snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "couldn't open '%s': %s", filename, strerror(errno));
 		return NULL;
 	}
 	m = obj_create();
@@ -252,14 +252,16 @@ OBJ_MESH *obj_load(const char *filename) {
             while(isspace(save[0])) save++;
             while(save[0] != '\n') {
                 if(save[0] == '\0') {
-                    snprintf(error_buffer, sizeof error_buffer, "unexpected end of file");
+                    snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "unexpected end of file");
                     obj_free(m);
+					fclose(f);
                     return NULL;
                 } else if(save[0] == '\r')
                     continue;
                 if(i == sizeof group - 1) {
-                    snprintf(error_buffer, sizeof error_buffer, "can't handle group names that long");
+                    snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "can't handle group names that long");
                     obj_free(m);
+					fclose(f);
                     return NULL;
                 }
                 group[i++] = *save++;
@@ -272,8 +274,9 @@ OBJ_MESH *obj_load(const char *filename) {
         } else if(!strcmp(word, "s")) {
             char * ss = tokenize(NULL, " ", &save);
             if(!ss) {
-                snprintf(error_buffer, sizeof error_buffer, "unexpected end of file");
+                snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "unexpected end of file");
                 obj_free(m);
+				fclose(f);
                 return NULL;
             }
             smoothing_group = atoi(ss);
@@ -283,11 +286,13 @@ OBJ_MESH *obj_load(const char *filename) {
 			 * I don't intend to support the more advanced geometries
 			 * listed in the specification.
 			 */
-			snprintf(error_buffer, sizeof error_buffer, "'%s' command is not supported", word);
+			snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "'%s' command is not supported", word);
             obj_free(m);
+			fclose(f);
             return NULL;
 		}
 	}
+	fclose(f);
 	return m;
 }
 
@@ -295,7 +300,7 @@ int obj_save(OBJ_MESH *m, const char *filename) {
 	int i;
 	FILE *f = fopen(filename, "w");
 	if(!f) {
-		snprintf(error_buffer, sizeof error_buffer, "Unable to create %s: %s", filename, strerror(errno));
+		snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "Unable to create %s: %s", filename, strerror(errno));
 		return 0;
 	}
 	fprintf(f, "# %s\n", filename);
