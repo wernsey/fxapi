@@ -1,5 +1,7 @@
-*.exe
+app
+app.exe
 *.o
+*.a
 *.zip
 
 .vscode

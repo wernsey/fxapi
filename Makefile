@@ -1,18 +1,19 @@
 CC=gcc
 CFLAGS=-c -Wall
-LDFLAGS=-lm
+LDFLAGS=-lm 
 
 # TODO: Remove this one things stabilize
 BUILD=debug
 
 # Add your source files here:
-SOURCES=main.c bmp.c fx.c \
+SOURCES= bmp.c fx.c obj.c \
 	gl-matrix/mat3.c gl-matrix/quat.c gl-matrix/mat4.c \
 	gl-matrix/vec2.c gl-matrix/vec3.c gl-matrix/vec4.c \
 	gl-matrix/str.c
 
 OBJECTS=$(SOURCES:.c=.o)
-EXECUTABLE=app.exe
+EXECUTABLE=app
+LIB=libfx.a
 
 ifeq ($(BUILD),debug)
 # Debug
@@ -26,19 +27,25 @@ endif
 
 all: $(EXECUTABLE)
 
+lib: $(LIB)
+
 debug:
 	make BUILD=debug
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+$(EXECUTABLE): main.o $(LIB)
+	$(CC) $^ $(LDFLAGS) -o $@
 	
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
-	
+
+$(LIB): $(OBJECTS)
+	ar rs $@ $^
+
 # Add header dependencies here
-main.o : main.c fx.h
+main.o : main.c fx.h gl-matrix/gl-matrix.h fx.h
 bmp.o : bmp.c bmp.h
-fx.o: fx.c fx.h bmp.h
+fx.o: fx.c fx.h bmp.h gl-matrix/gl-matrix.h fx.h
+obj.o : obj.c obj.h gl-matrix/gl-matrix.h fx.h
 
 .PHONY : clean dist
 
@@ -47,7 +54,8 @@ dist.zip: clean
 	zip -r $@ *
 
 clean: sweep
-	-rm -f $(EXECUTABLE)
+	-rm -f $(LIB)
+	-rm -f $(EXECUTABLE) $(EXECUTABLE).exe
 	
 sweep:
 	-rm -f *.o ./gdi/*.o gl-matrix/*.o
