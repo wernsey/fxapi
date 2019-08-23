@@ -83,12 +83,12 @@ int main(int argc, char *argv[]) {
 
 	fx_clear_zbuf();
 
-	mat4_t view = fx_get_view();
+	double view[16];
 	double eyePos[] = {0,0,5},
 		center[] = {0,0,0},
 		up[] = {0, 1, 0};
 	mat4_lookAt(eyePos, center, up, view);
-	//fx_set_view(view);
+	fx_set_view(view);
 
 	double model[16];
 	static double theta = M_PI/4.0;

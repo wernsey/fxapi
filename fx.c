@@ -85,7 +85,7 @@ void fx_set_viewport(Bitmap *target) {
 
 	double ratio = (double)V_Width / V_Height;
 
-	mat4_perspective(60.0, ratio, 0.2, 10.0, M_Projection);
+	mat4_perspective(60.0, ratio, 0.5, 10.0, M_Projection);
 }
 
 void fx_cleanup() {
@@ -163,6 +163,7 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
 
     int lighting = (Lighting && NNorms == NVerts) || (NCols == NVerts);
 
+    double texel[3];
     unsigned int trans_color;
     int tex_x, tex_y, tex_w, tex_h;
     if(Texture) {
@@ -173,7 +174,11 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
         tex_h = Texture->clip.y1 - Texture->clip.y0;
         assert(tex_x >= 0 && tex_y >= 0);
         assert(tex_w > 0 && tex_h > 0);
+    } else {
+        fx_ctorgb(Target->color, &texel[0], &texel[1], &texel[2]);
+        vec3_scale(texel, 255, NULL);
     }
+    double default_rgb[] = {1,1,1};
 
     int P[2]; // x, y;
     for(P[1] = ymin; P[1]<=ymax; P[1]++) {
@@ -194,9 +199,8 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
             double z = v0[2] * bc_clip[0] + v1[2] * bc_clip[1] + v2[2] * bc_clip[2];
 
             if(ZBUF(P[0],P[1]) > z) {
-
+                double rgb[3];
                 unsigned int color;
-                double texel[3], rgb[3];
 
                 if(NTexs == NVerts && Texture) {
                     double u = t0[0] * bc_clip[0] + t1[0] * bc_clip[1] + t2[0] * bc_clip[2];
@@ -214,38 +218,28 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
                     texel[0] = ((color >> 16) & 0xFF);
                     texel[1] = ((color >> 8) & 0xFF);
                     texel[2] = ((color >> 0) & 0xFF);
-                } else {
-                    texel[0] = texel[1] = texel[2] = 1.0;
                 }
 
                 if(lighting) {
                     rgb[0] = c0[0] * bc_clip[0] + c1[0] * bc_clip[1] + c2[0] * bc_clip[2];
                     rgb[1] = c0[1] * bc_clip[0] + c1[1] * bc_clip[1] + c2[1] * bc_clip[2];
                     rgb[2] = c0[2] * bc_clip[0] + c1[2] * bc_clip[1] + c2[2] * bc_clip[2];
-
-                    if(rgb[0] < 0.0) rgb[0] = 0.0;
-                    if(rgb[0] > 1.0) rgb[0] = 1.0;
-                    if(rgb[1] < 0.0) rgb[1] = 0.0;
-                    if(rgb[1] > 1.0) rgb[1] = 1.0;
-                    if(rgb[2] < 0.0) rgb[2] = 0.0;
-                    if(rgb[2] > 1.0) rgb[2] = 1.0;
-
+                    vec3_clamp01(rgb);
                 } else {
-                    rgb[0] = rgb[1] = rgb[2] = 1.0;
+                    vec3_set(default_rgb, rgb);
                 }
 
-                if(Fog_Enable){
+                if(Fog_Enable) {
                     double fac = (z - Fog_Near)/(Fog_Far - Fog_Near);
                     if(fac < 0) fac = 0;
                     if(fac > 1) fac = 1;
                     vec3_lerp(rgb, Fog_Color, fac, NULL);
                 }
 
-                // color = bm_rgb(r * 255, g * 255, b * 255);
+                color = bm_rgb(rgb[0] * texel[0], rgb[1] * texel[1], rgb[2] * texel[2]);
+
                 // color = 255 * (1.0 - z);
                 // color = bm_rgb(color,color,color);
-
-                color = bm_rgb(rgb[0] * texel[0], rgb[1] * texel[1], rgb[2] * texel[2]);
 
                 if(Blend) {
                     unsigned int color2 = bm_get(Target, P[0], P[1]);
@@ -263,12 +257,12 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
     }
 
 #if 0
-    unsigned int csave = bm_get_color(screen);
-    bm_set_color(screen, 0xFFFFFF);
-    bm_line(screen, v1[0], v1[1], v0[0], v0[1]);
-    bm_line(screen, v1[0], v1[1], v2[0], v2[1]);
-    bm_line(screen, v0[0], v0[1], v2[0], v2[1]);
-    bm_set_color(screen, csave);
+    unsigned int csave = bm_get_color(Target);
+    bm_set_color(Target, 0xFFFFFF);
+    bm_line(Target, v1[0], v1[1], v0[0], v0[1]);
+    bm_line(Target, v1[0], v1[1], v2[0], v2[1]);
+    bm_line(Target, v0[0], v0[1], v2[0], v2[1]);
+    bm_set_color(Target, csave);
 #endif
 }
 
@@ -396,23 +390,13 @@ static void triangle(int v0i, int v1i, int v2i) {
             return;
     }
 
-    vec3_t color[3];
     double vcolors[3][3];
+    vec3_t color[] = {vcolors[0], vcolors[1], vcolors[2]};
     if(Lighting) {
-        if(NNorms == NVerts) {
-            compute_lighting(NArray[v0i], vcolors[0]);
-            compute_lighting(NArray[v1i], vcolors[1]);
-            compute_lighting(NArray[v2i], vcolors[2]);
-        } else {
-            double black[] = {0,0,0};
-            vec3_set(black, vcolors[0]);
-            vec3_set(black, vcolors[1]);
-            vec3_set(black, vcolors[2]);
-        }
 
-        color[0] = vcolors[0];
-        color[1] = vcolors[1];
-        color[2] = vcolors[2];
+        compute_lighting(NArray[v0i], color[0]);
+        compute_lighting(NArray[v1i], color[1]);
+        compute_lighting(NArray[v2i], color[2]);
 
         if(NCols == NVerts) {
             vec3_add(color[0], CArray[v0i], NULL);
@@ -424,6 +408,8 @@ static void triangle(int v0i, int v1i, int v2i) {
         }
 
     } else {
+        /* I don't care at this point if NCols == NVerts;
+        I just need color[] to point to valid addresses */
         color[0] = CArray[v0i];
         color[1] = CArray[v1i];
         color[2] = CArray[v2i];
@@ -511,6 +497,7 @@ void fx_vertex(double x, double y, double z) {
     mat4_multiplyVec4(M_Xform, V, V);
     NVerts++;
 }
+
 void fx_vertex_v3(vec3_t v) {
     assert(NVerts < VARRAY_SIZE);
     assert(Begun);
@@ -541,6 +528,7 @@ void fx_normal(double x, double y, double z) {
     V[2] = z;
     NNorms++;
 }
+
 void fx_normal_v3(vec3_t v) {
     assert(NNorms < VARRAY_SIZE);
     assert(Begun);
@@ -559,25 +547,18 @@ void fx_color(double r, double g, double b) {
     NCols++;
 }
 
-mat4_t fx_get_model() {
-    return M_Model;
-}
 void fx_set_model(mat4_t m) {
     assert(!Begun); // Don't change the matrices between `fx_begin()` and `fx_end()`
     mat4_set(m, M_Model);
     Xform_dirty = 1;
 }
-mat4_t fx_get_view() {
-    return M_View;
-}
+
 void fx_set_view(mat4_t m) {
     assert(!Begun);
     mat4_set(m, M_View);
     Xform_dirty = 1;
 }
-mat4_t fx_get_projection() {
-    return M_Projection;
-}
+
 void fx_set_projection(mat4_t m) {
     assert(!Begun);
     mat4_set(m, M_Projection);
@@ -624,6 +605,7 @@ void fx_backface(int enabled) {
 void fx_fog(int enabled) {
     Fog_Enable = enabled;
 }
+
 void fx_fog_params(double r, double g, double b, double near, double far) {
     Fog_Color[0] = r;
     Fog_Color[1] = g;
@@ -641,4 +623,13 @@ void fx_set_pick(Bitmap *pick) {
     assert(Target);
     assert(pick->w >= Target->w && pick->h >= Target->h);
     Pick = pick;
+}
+
+void fx_ctorgb(unsigned int c, double *r, double *g, double *b) {
+    int ir = (c >> 16) & 0xFF;
+    int ig = (c >>  8) & 0xFF;
+    int ib = (c >>  0) & 0xFF;
+    *r = (double)ir / 255.0;
+    *g = (double)ig / 255.0;
+    *b = (double)ib / 255.0;
 }

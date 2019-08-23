@@ -29,11 +29,8 @@ void fx_normal(double x, double y, double z);
 void fx_normal_v3(vec3_t v);
 void fx_color(double r, double g, double b);
 
-mat4_t fx_get_model();
 void fx_set_model(mat4_t m);
-mat4_t fx_get_view();
 void fx_set_view(mat4_t m);
-mat4_t fx_get_projection();
 void fx_set_projection(mat4_t m);
 
 void fx_set_texture(Bitmap *texture);
@@ -52,5 +49,7 @@ void fx_fog(int enabled);
 void fx_fog_params(double r, double g, double b, double near, double far);
 
 void fx_set_pick(Bitmap *pick);
+
+void fx_ctorgb(unsigned int c, double *r, double *g, double *b);
 
 #endif
