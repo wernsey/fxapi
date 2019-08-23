@@ -267,7 +267,15 @@ double *md2_get_normal(int i) {
 }
 
 #ifndef MD2_NODRAW
-void md2_draw(MD2_MESH *m, int frame0, int frame1, double frac) {
+void md2_draw(MD2_MESH *m, double frame) {
+	assert(frame >= 0 && frame < m->header.n_frames);
+	int f0 = (int)frame;
+	int f1 = (int)frame + 1;
+	if(f1 >= m->header.n_frames) f1 = 0;
+    md2_draw_interpolate(m, f0, f1, frame - f0);
+}
+
+void md2_draw_interpolate(MD2_MESH *m, int frame0, int frame1, double frac) {
 #if 1
 	assert(frame0 >= 0 && frame0 < m->header.n_frames);
 	assert(frame1 >= 0 && frame1 < m->header.n_frames);

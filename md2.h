@@ -79,4 +79,6 @@ void md2_free(MD2_MESH *m);
 
 double *md2_get_normal(int i);
 
-void md2_draw(MD2_MESH *m, int frame0, int frame1, double frac);
+void md2_draw(MD2_MESH *m, double frame);
+
+void md2_draw_interpolate(MD2_MESH *m, int frame0, int frame1, double frac);
