@@ -7,7 +7,8 @@
 #include <math.h>
 #include <assert.h>
 
-#include "gl-matrix/gl-matrix.h"
+#define GL_MATRIX_IMPLEMENTATION
+#include "glmatrix.h"
 
 #include "bmp.h"
 

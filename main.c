@@ -6,7 +6,7 @@
 
 #include "bmp.h"
 #include "fx.h"
-#include "gl-matrix/gl-matrix.h"
+#include "glmatrix.h"
 
 double vertices[][3] = {
 	{-1,-1,-1},

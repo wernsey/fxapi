@@ -6,10 +6,7 @@ LDFLAGS=-lm
 BUILD=debug
 
 # Add your source files here:
-SOURCES= bmp.c fx.c obj.c md2.c \
-	gl-matrix/mat3.c gl-matrix/quat.c gl-matrix/mat4.c \
-	gl-matrix/vec2.c gl-matrix/vec3.c gl-matrix/vec4.c \
-	gl-matrix/str.c
+SOURCES= bmp.c fx.c obj.c md2.c
 
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=app
@@ -42,11 +39,11 @@ $(LIB): $(OBJECTS)
 	ar rs $@ $^
 
 # Add header dependencies here
-main.o : main.c fx.h gl-matrix/gl-matrix.h fx.h
+main.o : main.c fx.h glmatrix.h fx.h
 bmp.o : bmp.c bmp.h
-fx.o: fx.c fx.h bmp.h gl-matrix/gl-matrix.h fx.h
-obj.o : obj.c obj.h gl-matrix/gl-matrix.h fx.h
-md2.o : md2.h gl-matrix/gl-matrix.h fx.h
+fx.o: fx.c fx.h bmp.h glmatrix.h fx.h
+obj.o : obj.c obj.h glmatrix.h fx.h
+md2.o : md2.h md2.h glmatrix.h fx.h
 
 .PHONY : clean dist
 
