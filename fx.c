@@ -85,7 +85,7 @@ void fx_set_viewport(Bitmap *target) {
 
 	double ratio = (double)V_Width / V_Height;
 
-	mat4_perspective(60.0, ratio, 0.5, 10.0, M_Projection);
+	mat4_perspective(60.0, ratio, 0.1, 10.0, M_Projection);
 }
 
 void fx_cleanup() {
@@ -137,7 +137,7 @@ static void barycentric(vec3_t a, vec3_t b, vec3_t c, int P[2], vec3_t result) {
     }
 }
 
-static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t t1, vec2_t t2, vec3_t c0, vec3_t c1, vec3_t c2) {
+static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t t1, vec2_t t2, vec3_t c0, vec3_t c1, vec3_t c2) {
     double v0[3], v1[3], v2[3];
     v0[0] = (vp0[0]/vp0[3] + 1.0) * (double)V_Width/2.0;
     v0[1] = (-vp0[1]/vp0[3] + 1.0) * (double)V_Height/2.0;
@@ -150,6 +150,17 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
     v2[0] = (vp2[0]/vp2[3] + 1.0) * (double)V_Width/2.0;
     v2[1] = (-vp2[1]/vp2[3] + 1.0) * (double)V_Height/2.0;
     v2[2] = vp2[2]/vp2[3];
+
+    /* Backface culling: */
+    if(!Backface) {
+        double P[3], Q[3], N[3];;
+        vec3_subtract(v1, v0, P);
+        vec3_subtract(v2, v0, Q);
+        vec3_cross(P, Q, N);
+
+        if(N[2] >= 0) /* This is effectively `N . <0,0,1>` */
+            return 0;
+    }
 
     int xmin = (int)MIN(v0[0], MIN(v1[0], v2[0]));
     int xmax = (int)MAX(v0[0], MAX(v1[0], v2[0]));
@@ -264,6 +275,8 @@ static void basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t
     bm_line(Target, v0[0], v0[1], v2[0], v2[1]);
     bm_set_color(Target, csave);
 #endif
+
+    return 1;
 }
 
 static int inside_plane(vec4_t v, vec4_t P) {
@@ -286,7 +299,7 @@ static double ClipPlanes[][4] = {
 
 #define OUT_IN(N,M) vp[N] = v ## M; tp[N] = t ## M; cp[N] = c ## M;
 
-static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1, vec2_t t2, vec3_t c0, vec3_t c1, vec3_t c2, int n) {
+static int clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1, vec2_t t2, vec3_t c0, vec3_t c1, vec3_t c2, int n) {
     vec4_t vp[3], P;
     double vq1[4], vq2[4], tq1[2], tq2[2], cq1[3], cq2[3];
     double i1, i2;
@@ -294,8 +307,7 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
     vec3_t cp[3];
 
     if(n >= (sizeof ClipPlanes) / (sizeof ClipPlanes[0])) {
-        basic_triangle(v0, v1, v2, t0, t1, t2, c0, c1, c2);
-        return;
+        return basic_triangle(v0, v1, v2, t0, t1, t2, c0, c1, c2);
     }
     P = ClipPlanes[n];
 
@@ -310,20 +322,20 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
     inside = in0 + in1 + in2;
 
     if(inside == 3) {
-        clip_to_plane(v0, v1, v2, t0, t1, t2, c0, c1, c2, n+1);
+        return clip_to_plane(v0, v1, v2, t0, t1, t2, c0, c1, c2, n+1);
     } else if(inside == 2) {
         if(!in0) {
             OUT_IN(0, 0)
-            OUT_IN(1, 1)
-            OUT_IN(2, 2)
+            OUT_IN(2, 1)
+            OUT_IN(1, 2)
         } else if(!in1) {
             OUT_IN(0, 1)
-            OUT_IN(1, 2)
-            OUT_IN(2, 0)
+            OUT_IN(2, 2)
+            OUT_IN(1, 0)
         } else {
             OUT_IN(0, 2)
-            OUT_IN(1, 0)
-            OUT_IN(2, 1)
+            OUT_IN(2, 0)
+            OUT_IN(1, 1)
         }
 
         i1 = intersect(vp[1], vp[0], P);
@@ -336,8 +348,11 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
         vec2_lerp(tp[2], tp[0], i2, tq2);
         vec3_lerp(cp[2], cp[0], i2, cq2);
 
-        clip_to_plane(vp[1], vq1, vp[2], tp[1], tq1, tp[2], cp[1], cq1, cp[2], n+1);
-        clip_to_plane(vp[2], vq1, vq2, tp[2], tq1, tq2, cp[2], cq1, cq2, n+1);
+        int tris = 0;
+        tris += clip_to_plane(vp[1], vq1, vp[2], tp[1], tq1, tp[2], cp[1], cq1, cp[2], n+1);
+        tris += clip_to_plane(vp[2], vq1, vq2, tp[2], tq1, tq2, cp[2], cq1, cq2, n+1);
+
+        return tris;
 
     } else if(inside == 1) {
         if(in0) {
@@ -364,31 +379,18 @@ static void clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1,
         vec2_lerp(tp[0], tp[2], i2, tq2);
         vec3_lerp(cp[0], cp[2], i2, cq2);
 
-        clip_to_plane(vp[0], vq1, vq2, tp[0], tq1, tq2, cp[0], cq1, cq2, n+1);
+        return clip_to_plane(vp[0], vq1, vq2, tp[0], tq1, tq2, cp[0], cq1, cq2, n+1);
 
     } // else wholy outside plane
+    return 0;
 }
 
 static void compute_lighting(const vec3_t n0, vec3_t out);
 
-static void triangle(int v0i, int v1i, int v2i) {
+static int triangle(int v0i, int v1i, int v2i) {
     assert(v0i >= 0 && v0i < NVerts);
     assert(v1i >= 0 && v1i < NVerts);
     assert(v2i >= 0 && v2i < NVerts);
-
-    /* Backface culling: */
-    if(!Backface) {
-        vec4_t v[3] = { VArray[v0i], VArray[v1i], VArray[v2i] };
-
-        double p[3], q[3], nrm[3];
-        double tmp0[3], tmp1[3];
-        vec3_scale(v[0],1.0/v[0][3], tmp0);
-        vec3_subtract(vec3_scale(v[1],1.0/v[1][3], tmp1), tmp0, p);
-        vec3_subtract(vec3_scale(v[2],1.0/v[2][3], tmp1), tmp0, q);
-        vec3_cross(p, q, nrm);
-        if(nrm[2] < 0)
-            return;
-    }
 
     double vcolors[3][3];
     vec3_t color[] = {vcolors[0], vcolors[1], vcolors[2]};
@@ -415,7 +417,7 @@ static void triangle(int v0i, int v1i, int v2i) {
         color[2] = CArray[v2i];
     }
 
-    clip_to_plane(  VArray[v0i], VArray[v1i], VArray[v2i],
+    return clip_to_plane(  VArray[v0i], VArray[v1i], VArray[v2i],
                     TArray[v0i], TArray[v1i], TArray[v2i],
                     color[0], color[1], color[2], 0);
 }
@@ -450,7 +452,6 @@ static void compute_transforms() {
 
 void fx_begin(fx_mode mode) {
     assert(Target);
-
     compute_transforms();
 
     Mode = mode;
@@ -461,108 +462,106 @@ void fx_begin(fx_mode mode) {
     Begun = 1;
 }
 
-void fx_end() {
-    int i;
+int fx_end() {
+    int i, tris = 0;
+    if(!Target)
+        return 0;
     switch(Mode) {
         case FX_TRIANGLES:
         for(i = 2; i < NVerts; i+= 3) {
-            triangle(i - 2, i - 1, i);
+            tris += triangle(i - 2, i - 1, i);
         }
         break;
         case FX_TRIANGLE_STRIP:
         for(i = 2; i < NVerts; i++) {
             if(i & 0x1)
-                triangle(i-2, i-1, i);
+                tris += triangle(i-2, i, i-1);
             else
-                triangle(i, i-1, i-2);
+                tris += triangle(i-2, i-1, i);
         }
         break;
         case FX_TRIANGLE_FAN:
         for(i = 2; i < NVerts; i++) {
-            triangle(0, i, i - 1);
+            tris += triangle(0, i, i - 1);
         }
         break;
     }
     Begun = 0;
+    return tris;
 }
 
-void fx_vertex(double x, double y, double z) {
+int fx_vertex(double x, double y, double z) {
     assert(NVerts < VARRAY_SIZE); // If this fails, you need to increase VARRAY_SIZE
     assert(Begun); // Make sure you're between `fx_begin()` and `fx_end()` calls
-    vec4_t V = VArray[NVerts];
+    if(NVerts > VARRAY_SIZE || !Begun)
+        return 0;
+    vec4_t V = VArray[NVerts++];
     V[0] = x;
     V[1] = y;
     V[2] = z;
     V[3] = 1.0;
     mat4_multiplyVec4(M_Xform, V, V);
-    NVerts++;
+    return NVerts;
 }
 
-void fx_vertex_v3(vec3_t v) {
-    assert(NVerts < VARRAY_SIZE);
-    assert(Begun);
-    vec4_t V = VArray[NVerts];
-    V[0] = v[0];
-    V[1] = v[1];
-    V[2] = v[2];
-    V[3] = 1.0;
-    mat4_multiplyVec4(M_Xform, V, V);
-    NVerts++;
-}
-
-void fx_texcoord(double u, double v) {
+int fx_texcoord(double u, double v) {
     assert(NTexs < VARRAY_SIZE);
     assert(Begun);
-    vec2_t T = TArray[NTexs];
+    if(NTexs > VARRAY_SIZE || !Begun)
+        return 0;
+    vec2_t T = TArray[NTexs++];
     T[0] = u;
     T[1] = v;
-    NTexs++;
+    return NTexs;
 }
 
-void fx_normal(double x, double y, double z) {
+int fx_normal(double x, double y, double z) {
     assert(NNorms < VARRAY_SIZE); // If this fails, you need to increase VARRAY_SIZE
     assert(Begun); // Make sure you're between `fx_begin()` and `fx_end()` calls
-    vec3_t V = NArray[NNorms];
+    if(NNorms > VARRAY_SIZE || !Begun)
+        return 0;
+    vec3_t V = NArray[NNorms++];
     V[0] = x;
     V[1] = y;
     V[2] = z;
-    NNorms++;
+    return NNorms;
 }
 
-void fx_normal_v3(vec3_t v) {
-    assert(NNorms < VARRAY_SIZE);
-    assert(Begun);
-    vec3_t V = NArray[NNorms];
-    vec3_set(v, V);
-    NNorms++;
-}
-
-void fx_color(double r, double g, double b) {
+int fx_color(double r, double g, double b) {
     assert(NCols < VARRAY_SIZE);
     assert(Begun);
-    vec3_t C = CArray[NCols];
+    if(NCols > VARRAY_SIZE || !Begun)
+        return 0;
+    vec3_t C = CArray[NCols++];
     C[0] = r;
     C[1] = g;
     C[2] = b;
-    NCols++;
+    return NCols;
 }
 
 void fx_set_model(mat4_t m) {
-    assert(!Begun); // Don't change the matrices between `fx_begin()` and `fx_end()`
-    mat4_set(m, M_Model);
-    Xform_dirty = 1;
+    /* Don't change the matrices between `fx_begin()` and `fx_end()` */
+    assert(!Begun);
+    if(!Begun) {
+        mat4_set(m, M_Model);
+        Xform_dirty = 1;
+    }
 }
 
 void fx_set_view(mat4_t m) {
     assert(!Begun);
-    mat4_set(m, M_View);
-    Xform_dirty = 1;
+    if(!Begun) {
+        mat4_set(m, M_View);
+        Xform_dirty = 1;
+    }
 }
 
 void fx_set_projection(mat4_t m) {
     assert(!Begun);
-    mat4_set(m, M_Projection);
-    Xform_dirty = 1;
+    if(!Begun) {
+        mat4_set(m, M_Projection);
+        Xform_dirty = 1;
+    }
 }
 
 void fx_set_texture(Bitmap *texture) {
@@ -622,7 +621,8 @@ void fx_blend(int enabled) {
 void fx_set_pick(Bitmap *pick) {
     assert(Target);
     assert(pick->w >= Target->w && pick->h >= Target->h);
-    Pick = pick;
+    if(Target && pick->w >= Target->w && pick->h >= Target->h)
+        Pick = pick;
 }
 
 void fx_ctorgb(unsigned int c, double *r, double *g, double *b) {

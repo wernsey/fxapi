@@ -60,5 +60,5 @@ clean: sweep
 	
 sweep:
 	-rm -f *.o ./gdi/*.o gl-matrix/*.o
-	-rm -f *.log
-	-rm -f dist.zip screen-*.bmp
+	-rm -f out.gif pick.gif
+	-rm -f dist.zip

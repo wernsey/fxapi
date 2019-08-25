@@ -20,14 +20,15 @@ void fx_cleanup();
 void fx_clear_zbuf();
 
 void fx_begin(fx_mode mode);
-void fx_end();
+int fx_end();
 
-void fx_vertex(double x, double y, double z);
-void fx_vertex_v3(vec3_t v);
-void fx_texcoord(double u, double v);
-void fx_normal(double x, double y, double z);
-void fx_normal_v3(vec3_t v);
-void fx_color(double r, double g, double b);
+int fx_vertex(double x, double y, double z);
+int fx_texcoord(double u, double v);
+int fx_normal(double x, double y, double z);
+int fx_color(double r, double g, double b);
+
+#define fx_vertex_v3(v3) fx_vertex(v3[0], v3[1], v3[2])
+#define fx_normal_v3(v3) fx_normal(v3[0], v3[1], v3[2])
 
 void fx_set_model(mat4_t m);
 void fx_set_view(mat4_t m);
