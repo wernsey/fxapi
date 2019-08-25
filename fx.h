@@ -2,7 +2,7 @@
 #define FX_H
 
 #ifndef GL_MATRIX_H
-/* #include "gl-matrix/gl-matrix.h" */
+/* #include "glmatrix.h" */
 typedef double *vec3_t;
 typedef double *mat4_t;
 #endif
