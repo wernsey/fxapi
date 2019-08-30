@@ -179,7 +179,7 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
     double texel[3];
     unsigned int trans_color;
     int tex_x, tex_y, tex_w, tex_h;
-    if(Texture) {
+    if(NTexs == NVerts && Texture) {
         trans_color = Texture->color & 0x00FFFFFF;
         tex_x = Texture->clip.x0;
         tex_y = Texture->clip.y0;

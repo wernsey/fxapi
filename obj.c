@@ -231,7 +231,7 @@ OBJ_MESH *obj_load(const char *filename) {
                  * Is this official?
                  * Would I need to do something similar for vt?
                  */
-                vn = v;
+                //vn = v;
 
 				x = tokenize(NULL, "/", &save2);
 				if(x) {
