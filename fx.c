@@ -1,6 +1,6 @@
 /*
  * https://github.com/ssloy/tinyrenderer/wiki/Lesson-0:-getting-started
- * https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/perspective-correct-interpolation-vertex-attributes
+ * https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation
  */
 
 #include <stdlib.h>
@@ -20,8 +20,9 @@ static Bitmap *Pick = NULL;
 static int V_Width = 0, V_Height = 0;
 
 static double M_Model[16], M_View[16], M_Projection[16];
-static double M_Xform[16];
+static double M_ModelView[16], M_Xform[16];
 static double M_NormalXform[16];
+static double M_View_Inv[16];
 
 static int Xform_dirty = 1;
 
@@ -441,7 +442,9 @@ static void compute_lighting(const vec3_t n0, vec3_t out) {
 static void compute_transforms() {
     if(Xform_dirty) {
         /* Multiply the Model, View and Projection matrices to get the transformation matrix */
-        mat4_multiply(mat4_multiply(M_Projection, M_View, M_Xform), M_Model, NULL);
+
+        mat4_multiply(M_View, M_Model, M_ModelView);
+        mat4_multiply(M_Projection, M_ModelView, M_Xform);
 
         /* The matrix for transforming normals is the inverse transpose of the Model matrix
         http://www.songho.ca/opengl/gl_normaltransform.html
@@ -548,13 +551,20 @@ void fx_set_model(mat4_t m) {
         Xform_dirty = 1;
     }
 }
+void fx_save_model(mat4_t dest) {
+    mat4_set(M_Model, dest);
+}
 
 void fx_set_view(mat4_t m) {
     assert(!Begun);
     if(!Begun) {
         mat4_set(m, M_View);
+        mat4_inverse(M_View, M_View_Inv);
         Xform_dirty = 1;
     }
+}
+void fx_save_view(mat4_t dest) {
+    mat4_set(M_View, dest);
 }
 
 void fx_set_projection(mat4_t m) {
@@ -563,6 +573,9 @@ void fx_set_projection(mat4_t m) {
         mat4_set(m, M_Projection);
         Xform_dirty = 1;
     }
+}
+void fx_save_projection(mat4_t dest) {
+    mat4_set(M_Projection, dest);
 }
 
 void fx_set_texture(Bitmap *texture) {
@@ -633,4 +646,103 @@ void fx_ctorgb(unsigned int c, double *r, double *g, double *b) {
     *r = (double)ir / 255.0;
     *g = (double)ig / 255.0;
     *b = (double)ib / 255.0;
+}
+
+/*
+To compute lighting on the billboard we subtract the position
+of the billboard from the camera position and normalize.
+If you don't supply the camera position to the function, it will
+use translation part of the inverse of the view matrix to get
+the camera position, but this assumes that the view matrix is
+not scaled or skewed (which is normally true).
+https://community.khronos.org/t/extracting-camera-position-from-a-modelview-matrix/68031
+https://gamedev.stackexchange.com/questions/22283/how-to-get-translation-from-view-matrix
+https://gamedev.stackexchange.com/a/138209/25926
+*/
+
+void fx_billboard(vec3_t pos, double scale, int flags) {
+    fx_billboard_eye(pos, NULL, scale, flags);
+}
+
+void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags) {
+
+    double model[16], modelview[16], save_model[16], save_view[16];
+
+    fx_save_model(save_model);
+    fx_save_view(save_view);
+
+    mat4_identity(model);
+    mat4_translate(model, pos, NULL);
+    double sv[] = {scale, scale, scale};
+    mat4_scale(model, sv, NULL);
+    mat4_multiply(M_View, model, modelview);
+
+    if(flags & BB_CYLINDRICAL) {
+        modelview[0] = 1; modelview[1] = 0; modelview[2] = 0;
+        modelview[8] = 0; modelview[9] = 0; modelview[10] = 1;
+    } else {
+        modelview[0] = 1; modelview[1] = 0; modelview[2] = 0;
+        modelview[4] = 0; modelview[5] = 1; modelview[6] = 0;
+        modelview[8] = 0; modelview[9] = 0; modelview[10] = 1;
+    }
+
+    mat4_multiply(M_Projection, modelview, M_Xform);
+
+    static double vc[][3] = { { -0.5,  0.5, 0 },
+                                { -0.5, -0.5, 0 },
+                                {  0.5,  0.5, 0 },
+                                {  0.5, -0.5, 0 }};
+    static double vb[][3] = { { -0.5,  1.0, 0 },
+                                { -0.5,  0.0, 0 },
+                                {  0.5,  1.0, 0 },
+                                {  0.5,  0.0, 0 }};
+    static double vt[][3] = { { -0.5,  0.0, 0 },
+                                { -0.5, -1.0, 0 },
+                                {  0.5,  0.0, 0 },
+                                {  0.5,  -1.0, 0 }};
+
+    double (*v)[3] = (flags & BB_ANCHOR_BOTTOM) ? vb : (flags & BB_ANCHOR_TOP) ? vt : vc;
+
+    static double t[][2] = {{0,0},{0,1},{1,0},{1,1}};
+
+    int save_backface = Backface;
+    Backface = 0;
+
+    double color[3] = {1.0, 1.0, 1.0};
+
+    /* Disable lighting temporarily.
+    We will calculate the lighting here, rather than
+    defer it to `triangle()` because the normal vector
+    works differently */
+    int save_light = Lighting;
+    Lighting = 0;
+    if(save_light) {
+        double eye_pos[3], n0[3];
+        if(!eye) {
+            vec3_set(&M_View_Inv[12], eye_pos);
+        } else {
+            vec3_negate(eye, eye_pos);
+        }
+        vec3_subtract(pos, eye_pos, n0);
+        vec3_normalize(n0, NULL);
+
+        double intensity = vec3_dot(n0, DiffuseDirection);
+        if(intensity < 0) intensity = 0;
+        vec3_scale(DiffuseColor, intensity, color);
+        vec3_add(color, AmbientColor, NULL);
+        vec3_clamp01(color);
+    }
+
+    Xform_dirty = 0; // Hack to prevent us from recomputing the transform
+    fx_begin(FX_TRIANGLE_STRIP);
+    fx_vertex_v3(v[0]); fx_texcoord(t[0][0], t[0][1]); fx_color_v3(color);
+    fx_vertex_v3(v[1]); fx_texcoord(t[1][0], t[1][1]); fx_color_v3(color);
+    fx_vertex_v3(v[2]); fx_texcoord(t[2][0], t[2][1]); fx_color_v3(color);
+    fx_vertex_v3(v[3]); fx_texcoord(t[3][0], t[3][1]); fx_color_v3(color);
+    fx_end();
+
+    fx_set_model(save_model);
+    fx_set_view(save_view);
+    Backface = save_backface;
+    Lighting = save_light;
 }

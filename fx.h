@@ -29,10 +29,15 @@ int fx_color(double r, double g, double b);
 
 #define fx_vertex_v3(v3) fx_vertex(v3[0], v3[1], v3[2])
 #define fx_normal_v3(v3) fx_normal(v3[0], v3[1], v3[2])
+#define fx_color_v3(v3) fx_color(v3[0], v3[1], v3[2])
 
 void fx_set_model(mat4_t m);
 void fx_set_view(mat4_t m);
 void fx_set_projection(mat4_t m);
+
+void fx_save_model(mat4_t dest);
+void fx_save_view(mat4_t dest);
+void fx_save_projection(mat4_t dest);
 
 void fx_set_texture(Bitmap *texture);
 void fx_transparent(int enabled);
@@ -52,5 +57,13 @@ void fx_fog_params(double r, double g, double b, double near, double far);
 void fx_set_pick(Bitmap *pick);
 
 void fx_ctorgb(unsigned int c, double *r, double *g, double *b);
+
+#define BB_CYLINDRICAL      1
+#define BB_SHADED           2
+#define BB_ANCHOR_BOTTOM    4
+#define BB_ANCHOR_TOP       8
+
+void fx_billboard(vec3_t pos, double scale, int flags);
+void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags);
 
 #endif
