@@ -470,6 +470,7 @@ int fx_end() {
     int i, tris = 0;
     if(!Target)
         return 0;
+    assert(Begun);
     switch(Mode) {
         case FX_TRIANGLES:
         for(i = 2; i < NVerts; i+= 3) {
@@ -661,7 +662,9 @@ https://gamedev.stackexchange.com/a/138209/25926
 */
 
 void fx_billboard(vec3_t pos, double scale, int flags) {
-    fx_billboard_eye(pos, NULL, scale, flags);
+    double eye_pos[3];
+    vec3_negate(vec3_set(&M_View_Inv[12], eye_pos), NULL);
+    fx_billboard_eye(pos, eye_pos, scale, flags);
 }
 
 void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags) {
@@ -717,13 +720,10 @@ void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags) {
     int save_light = Lighting;
     Lighting = 0;
     if(save_light) {
-        double eye_pos[3], n0[3];
-        if(!eye) {
-            vec3_set(&M_View_Inv[12], eye_pos);
-        } else {
-            vec3_negate(eye, eye_pos);
-        }
-        vec3_subtract(pos, eye_pos, n0);
+        double n0[3], e[3];
+        assert(eye);
+        vec3_negate(eye, e);
+        vec3_subtract(pos, e, n0);
         vec3_normalize(n0, NULL);
 
         double intensity = vec3_dot(n0, DiffuseDirection);
