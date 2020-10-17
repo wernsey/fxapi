@@ -40,11 +40,11 @@ from JavaScript to C.
 extern "C" {
 #endif
 
-/* 
+/*
  * gl-matrix.c - High performance matrix and vector operations for OpenGL
  * Version 1.2.3
  */
- 
+
 #define GL_MATRIX_MAJOR_VERSION 1
 #define GL_MATRIX_MINOR_VERSION 2
 #define GL_MATRIX_MICRO_VERSION 3
@@ -57,12 +57,14 @@ extern "C" {
                               (GL_MATRIX_MINOR_VERSION << 8) | \
                               (GL_MATRIX_MICRO_VERSION))
 
-typedef double *vec2_t;
-typedef double *vec3_t;
-typedef double *vec4_t;
-typedef double *mat3_t;
-typedef double *mat4_t;
-typedef double *quat_t;
+typedef double numeric_t;
+
+typedef numeric_t *vec2_t;
+typedef numeric_t *vec3_t;
+typedef numeric_t *vec4_t;
+typedef numeric_t *mat3_t;
+typedef numeric_t *mat4_t;
+typedef numeric_t *quat_t;
 
 /*
  * vec2_t - 2 Dimensional Vector
@@ -73,7 +75,7 @@ typedef double *quat_t;
  * Creates a new instance of a vec2_t
  *
  * Params:
- * vec - Optional, vec2_t containing values to initialize with. If NULL, the 
+ * vec - Optional, vec2_t containing values to initialize with. If NULL, the
  * vector will be initialized with zeroes.
  *
  * Returns:
@@ -147,7 +149,7 @@ vec2_t vec2_negate(vec2_t vec, vec2_t dest);
  * Returns:
  * dest if not NULL, vec otherwise
  */
-vec2_t vec2_scale(vec2_t vec, double val, vec2_t dest);
+vec2_t vec2_scale(vec2_t vec, numeric_t val, vec2_t dest);
 
 /*
  * vec2_normalize
@@ -173,7 +175,7 @@ vec2_t vec2_normalize(vec2_t vec, vec2_t dest);
  * Returns:
  * Length of vec
  */
-double vec2_length(vec2_t vec);
+numeric_t vec2_length(vec2_t vec);
 
 /*
  * vec2_dot
@@ -186,7 +188,7 @@ double vec2_length(vec2_t vec);
  * Returns:
  * Dot product of vec and vec2
  */
-double vec2_dot(vec2_t vec, vec2_t vec2);
+numeric_t vec2_dot(vec2_t vec, vec2_t vec2);
 
 /*
  * vec2_direction
@@ -215,7 +217,7 @@ vec2_t vec2_direction (vec2_t vec, vec2_t vec2, vec2_t dest);
  * Returns:
  * dest if not NULL, vec otherwise
  */
-vec2_t vec2_lerp(vec2_t vec, vec2_t vec2, double lerp, vec2_t dest);
+vec2_t vec2_lerp(vec2_t vec, vec2_t vec2, numeric_t lerp, vec2_t dest);
 
 /*
  * vec2_dist
@@ -228,7 +230,7 @@ vec2_t vec2_lerp(vec2_t vec, vec2_t vec2, double lerp, vec2_t dest);
  * Returns:
  * distance between vec and vec2
  */
-double vec2_dist(vec2_t vec, vec2_t vec2);
+numeric_t vec2_dist(vec2_t vec, vec2_t vec2);
 
 /*
  * vec2_str
@@ -249,7 +251,7 @@ void vec2_str(vec2_t vec, char *buffer);
  * Creates a new instance of a vec3_t
  *
  * Params:
- * vec - Optional, vec3_t containing values to initialize with. If NULL, the 
+ * vec - Optional, vec3_t containing values to initialize with. If NULL, the
  * vector will be initialized with zeroes.
  *
  * Returns:
@@ -337,7 +339,7 @@ vec3_t vec3_negate(vec3_t vec, vec3_t dest);
  * Returns:
  * dest if not NULL, vec otherwise
  */
-vec3_t vec3_scale(vec3_t vec, double val, vec3_t dest);
+vec3_t vec3_scale(vec3_t vec, numeric_t val, vec3_t dest);
 
 /*
  * vec3_normalize
@@ -377,7 +379,7 @@ vec3_t vec3_cross (vec3_t vec, vec3_t vec2, vec3_t dest);
  * Returns:
  * Length of vec
  */
-double vec3_length(vec3_t vec);
+numeric_t vec3_length(vec3_t vec);
 
 /*
  * vec3_dot
@@ -390,7 +392,7 @@ double vec3_length(vec3_t vec);
  * Returns:
  * Dot product of vec and vec2
  */
-double vec3_dot(vec3_t vec, vec3_t vec2);
+numeric_t vec3_dot(vec3_t vec, vec3_t vec2);
 
 /*
  * vec3_direction
@@ -420,7 +422,7 @@ vec3_t vec3_direction (vec3_t vec, vec3_t vec2, vec3_t dest);
  * dest if not NULL, vec otherwise
  */
 
-vec3_t vec3_lerp(vec3_t vec, vec3_t vec2, double lerp, vec3_t dest);
+vec3_t vec3_lerp(vec3_t vec, vec3_t vec2, numeric_t lerp, vec3_t dest);
 
 /*
  * vec3_dist
@@ -433,12 +435,12 @@ vec3_t vec3_lerp(vec3_t vec, vec3_t vec2, double lerp, vec3_t dest);
  * Returns:
  * distance between vec and vec2
  */
-double vec3_dist(vec3_t vec, vec3_t vec2);
+numeric_t vec3_dist(vec3_t vec, vec3_t vec2);
 
 /*
  * vec3_unproject
  * Projects the specified vec3_t from screen space into object space
- * Based on Mesa gluUnProject implementation at: 
+ * Based on Mesa gluUnProject implementation at:
  * http://webcvs.freedesktop.org/mesa/Mesa/src/glu/mesa/project.c?revision=1.4&view=markup
  *
  * Params:
@@ -472,7 +474,7 @@ void vec3_str(vec3_t vec, char *buffer);
  * Creates a new instance of a vec4_t
  *
  * Params:
- * vec - Optional, vec4_t containing values to initialize with. If NULL, the 
+ * vec - Optional, vec4_t containing values to initialize with. If NULL, the
  * vector will be initialized with zeroes.
  *
  * Returns:
@@ -546,7 +548,7 @@ vec4_t vec4_negate(vec4_t vec, vec4_t dest);
  * Returns:
  * dest if not NULL, vec otherwise
  */
-vec4_t vec4_scale(vec4_t vec, double val, vec4_t dest);
+vec4_t vec4_scale(vec4_t vec, numeric_t val, vec4_t dest);
 
 /*
  * vec4_normalize
@@ -572,7 +574,7 @@ vec4_t vec4_normalize(vec4_t vec, vec4_t dest);
  * Returns:
  * Length of vec
  */
-double vec4_length(vec4_t vec);
+numeric_t vec4_length(vec4_t vec);
 
 /*
  * vec4_dot
@@ -585,7 +587,7 @@ double vec4_length(vec4_t vec);
  * Returns:
  * Dot product of vec and vec2
  */
-double vec4_dot(vec4_t vec, vec4_t vec2);
+numeric_t vec4_dot(vec4_t vec, vec4_t vec2);
 
 /*
  * vec4_direction
@@ -614,7 +616,7 @@ vec4_t vec4_direction (vec4_t vec, vec4_t vec2, vec4_t dest);
  * Returns:
  * dest if not NULL, vec otherwise
  */
-vec4_t vec4_lerp(vec4_t vec, vec4_t vec2, double lerp, vec4_t dest);
+vec4_t vec4_lerp(vec4_t vec, vec4_t vec2, numeric_t lerp, vec4_t dest);
 
 /*
  * vec4_dist
@@ -627,7 +629,7 @@ vec4_t vec4_lerp(vec4_t vec, vec4_t vec2, double lerp, vec4_t dest);
  * Returns:
  * distance between vec and vec2
  */
-double vec4_dist(vec4_t vec, vec4_t vec2);
+numeric_t vec4_dist(vec4_t vec, vec4_t vec2);
 
 /*
  * vec4_str
@@ -713,7 +715,7 @@ mat4_t mat3_toMat4(mat3_t mat, mat4_t dest);
  *
  * Params:
  * mat - mat3_t to represent as a string
- * buffer - char * to store the results 
+ * buffer - char * to store the results
  */
 void mat3_str(mat3_t mat, char *buffer);
 
@@ -757,7 +759,7 @@ mat4_t mat4_set(mat4_t mat, mat4_t dest);
  * dest
  */
 mat4_t mat4_identity(mat4_t dest);
-     
+
 /*
  * mat4_transpose
  * Transposes a mat4_t (flips the values over the diagonal)
@@ -781,7 +783,7 @@ mat4_t mat4_transpose(mat4_t mat, mat4_t dest);
  * Returns:
  * determinant of mat
  */
-double mat4_determinant(mat4_t mat);
+numeric_t mat4_determinant(mat4_t mat);
 
 /*
  * mat4_inverse
@@ -915,13 +917,13 @@ mat4_t mat4_scale(mat4_t mat, vec3_t vec, mat4_t dest);
  * Params:
  * mat - mat4_t to rotate
  * angle - angle (in radians) to rotate
- * axis - vec3_t representing the axis to rotate around 
+ * axis - vec3_t representing the axis to rotate around
  * dest - Optional, mat4_t receiving operation result. If NULL, result is written to mat
  *
  * Returns:
  * dest if not NULL, mat otherwise
  */
-mat4_t mat4_rotate(mat4_t mat, double angle, vec3_t axis, mat4_t dest);
+mat4_t mat4_rotate(mat4_t mat, numeric_t angle, vec3_t axis, mat4_t dest);
 
 /*
  * mat4_rotateX
@@ -935,7 +937,7 @@ mat4_t mat4_rotate(mat4_t mat, double angle, vec3_t axis, mat4_t dest);
  * Returns:
  * dest if not NULL, mat otherwise
  */
-mat4_t mat4_rotateX(mat4_t mat, double angle, mat4_t dest);
+mat4_t mat4_rotateX(mat4_t mat, numeric_t angle, mat4_t dest);
 
 /*
  * mat4_rotateY
@@ -949,7 +951,7 @@ mat4_t mat4_rotateX(mat4_t mat, double angle, mat4_t dest);
  * Returns:
  * dest if not NULL, mat otherwise
  */
-mat4_t mat4_rotateY(mat4_t mat, double angle, mat4_t dest);
+mat4_t mat4_rotateY(mat4_t mat, numeric_t angle, mat4_t dest);
 
 /*
  * mat4_rotateZ
@@ -963,7 +965,7 @@ mat4_t mat4_rotateY(mat4_t mat, double angle, mat4_t dest);
  * Returns:
  * dest if not NULL, mat otherwise
  */
-mat4_t mat4_rotateZ(mat4_t mat, double angle, mat4_t dest);
+mat4_t mat4_rotateZ(mat4_t mat, numeric_t angle, mat4_t dest);
 
 /*
  * mat4_frustum
@@ -978,7 +980,7 @@ mat4_t mat4_rotateZ(mat4_t mat, double angle, mat4_t dest);
  * Returns:
  * dest if not NULL, a new mat4_t otherwise
  */
-mat4_t mat4_frustum(double left, double right, double bottom, double top, double near, double far, mat4_t dest);
+mat4_t mat4_frustum(numeric_t left, numeric_t right, numeric_t bottom, numeric_t top, numeric_t near, numeric_t far, mat4_t dest);
 
 /*
  * mat4_perspective
@@ -993,7 +995,7 @@ mat4_t mat4_frustum(double left, double right, double bottom, double top, double
  * Returns:
  * dest if not NULL, a new mat4_t otherwise
  */
-mat4_t mat4_perspective(double fovy, double aspect, double near, double far, mat4_t dest);
+mat4_t mat4_perspective(numeric_t fovy, numeric_t aspect, numeric_t near, numeric_t far, mat4_t dest);
 
 /*
  * mat4_ortho
@@ -1008,7 +1010,7 @@ mat4_t mat4_perspective(double fovy, double aspect, double near, double far, mat
  * Returns:
  * dest if not NULL, a new mat4_t otherwise
  */
-mat4_t mat4_ortho(double left, double right, double bottom, double top, double near, double far, mat4_t dest);
+mat4_t mat4_ortho(numeric_t left, numeric_t right, numeric_t bottom, numeric_t top, numeric_t near, numeric_t far, mat4_t dest);
 
 /*
  * mat4_lookAt
@@ -1057,7 +1059,7 @@ mat4_t mat4_fromRotationTranslation(quat_t quat, vec3_t vec, mat4_t dest);
 void mat4_str(mat4_t mat, char *buffer);
 
 /*
- * quat - Quaternions 
+ * quat - Quaternions
  */
 
 /*
@@ -1088,8 +1090,8 @@ quat_t quat_set(quat_t quat, quat_t dest);
 /*
  * quat_calculateW
  * Calculates the W component of a quat_t from the X, Y, and Z components.
- * Assumes that quaternion is 1 unit in length. 
- * Any existing W component will be ignored. 
+ * Assumes that quaternion is 1 unit in length.
+ * Any existing W component will be ignored.
  *
  * Params:
  * quat - quat_t to calculate W component of
@@ -1109,7 +1111,7 @@ quat_t quat_calculateW(quat_t quat, quat_t dest);
  *
  * @return {number} Dot product of quat and quat2
  */
-double quat_dot(quat_t quat, quat_t quat2);
+numeric_t quat_dot(quat_t quat, quat_t quat2);
 
 /*
  * quat_inverse
@@ -1147,7 +1149,7 @@ quat_t quat_conjugate(quat_t quat, quat_t dest);
  * Returns:
  * Length of quat
  */
-double quat_length(quat_t quat);
+numeric_t quat_length(quat_t quat);
 
 /*
  * quat_normalize
@@ -1230,7 +1232,7 @@ quat_t quat_toMat4(quat_t quat, mat4_t dest);
  * Returns:
  * dest if not NULL, quat otherwise
  */
-quat_t quat_slerp(quat_t quat, quat_t quat2, double slerp, quat_t dest);
+quat_t quat_slerp(quat_t quat, quat_t quat2, numeric_t slerp, quat_t dest);
 
 /*
  * quat_str
@@ -1254,7 +1256,7 @@ void quat_str(quat_t quat, char *buffer);
 
 
 vec2_t vec2_create(vec2_t vec) {
-    vec2_t dest = calloc(2, sizeof(double));
+    vec2_t dest = calloc(2, sizeof(numeric_t));
 
     if (vec) {
         dest[0] = vec[0];
@@ -1305,7 +1307,7 @@ vec2_t vec2_negate(vec2_t vec, vec2_t dest) {
     return dest;
 }
 
-vec2_t vec2_scale(vec2_t vec, double val, vec2_t dest) {
+vec2_t vec2_scale(vec2_t vec, numeric_t val, vec2_t dest) {
     if (!dest || vec == dest) {
         vec[0] *= val;
         vec[1] *= val;
@@ -1320,7 +1322,7 @@ vec2_t vec2_scale(vec2_t vec, double val, vec2_t dest) {
 vec2_t vec2_normalize(vec2_t vec, vec2_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0], y = vec[1],
+    numeric_t x = vec[0], y = vec[1],
         len = sqrt(x * x + y * y);
 
     if (!len) {
@@ -1339,19 +1341,19 @@ vec2_t vec2_normalize(vec2_t vec, vec2_t dest) {
     return dest;
 }
 
-double vec2_length(vec2_t vec) {
-    double x = vec[0], y = vec[1];
+numeric_t vec2_length(vec2_t vec) {
+    numeric_t x = vec[0], y = vec[1];
     return sqrt(x * x + y * y);
 }
 
-double vec2_dot(vec2_t vec, vec2_t vec2) {
+numeric_t vec2_dot(vec2_t vec, vec2_t vec2) {
     return vec[0] * vec2[0] + vec[1] * vec2[1];
 }
 
 vec2_t vec2_direction (vec2_t vec, vec2_t vec2, vec2_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0] - vec2[0],
+    numeric_t x = vec[0] - vec2[0],
         y = vec[1] - vec2[1],
         len = sqrt(x * x + y * y);
 
@@ -1367,15 +1369,15 @@ vec2_t vec2_direction (vec2_t vec, vec2_t vec2, vec2_t dest) {
     return dest;
 }
 
-vec2_t vec2_lerp(vec2_t vec, vec2_t vec2, double lerp, vec2_t dest) {
+vec2_t vec2_lerp(vec2_t vec, vec2_t vec2, numeric_t lerp, vec2_t dest) {
     if (!dest) { dest = vec; }
     dest[0] = vec[0] + lerp * (vec2[0] - vec[0]);
     dest[1] = vec[1] + lerp * (vec2[1] - vec[1]);
     return dest;
 }
 
-double vec2_dist(vec2_t vec, vec2_t vec2) {
-    double x = vec2[0] - vec[0],
+numeric_t vec2_dist(vec2_t vec, vec2_t vec2) {
+    numeric_t x = vec2[0] - vec[0],
         y = vec2[1] - vec[1];
 
     return sqrt(x*x + y*y);
@@ -1383,7 +1385,7 @@ double vec2_dist(vec2_t vec, vec2_t vec2) {
 
 
 vec3_t vec3_create(vec3_t vec) {
-    vec3_t dest = calloc(3, sizeof(double));
+    vec3_t dest = calloc(3, sizeof(numeric_t));
 
     if (vec) {
         dest[0] = vec[0];
@@ -1415,7 +1417,7 @@ vec3_t vec3_add(vec3_t vec, vec3_t vec2, vec3_t dest) {
     dest[0] = vec[0] + vec2[0];
     dest[1] = vec[1] + vec2[1];
     dest[2] = vec[2] + vec2[2];
-    
+
     return dest;
 }
 
@@ -1456,7 +1458,7 @@ vec3_t vec3_negate(vec3_t vec, vec3_t dest) {
     return dest;
 }
 
-vec3_t vec3_scale(vec3_t vec, double val, vec3_t dest) {
+vec3_t vec3_scale(vec3_t vec, numeric_t val, vec3_t dest) {
     if (!dest || vec == dest) {
         vec[0] *= val;
         vec[1] *= val;
@@ -1473,7 +1475,7 @@ vec3_t vec3_scale(vec3_t vec, double val, vec3_t dest) {
 vec3_t vec3_normalize(vec3_t vec, vec3_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0], y = vec[1], z = vec[2],
+    numeric_t x = vec[0], y = vec[1], z = vec[2],
         len = sqrt(x * x + y * y + z * z);
 
     if (!len) {
@@ -1498,7 +1500,7 @@ vec3_t vec3_normalize(vec3_t vec, vec3_t dest) {
 vec3_t vec3_cross (vec3_t vec, vec3_t vec2, vec3_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0], y = vec[1], z = vec[2],
+    numeric_t x = vec[0], y = vec[1], z = vec[2],
         x2 = vec2[0], y2 = vec2[1], z2 = vec2[2];
 
     dest[0] = y * z2 - z * y2;
@@ -1507,19 +1509,19 @@ vec3_t vec3_cross (vec3_t vec, vec3_t vec2, vec3_t dest) {
     return dest;
 }
 
-double vec3_length(vec3_t vec) {
-    double x = vec[0], y = vec[1], z = vec[2];
+numeric_t vec3_length(vec3_t vec) {
+    numeric_t x = vec[0], y = vec[1], z = vec[2];
     return sqrt(x * x + y * y + z * z);
 }
 
-double vec3_dot(vec3_t vec, vec3_t vec2) {
+numeric_t vec3_dot(vec3_t vec, vec3_t vec2) {
     return vec[0] * vec2[0] + vec[1] * vec2[1] + vec[2] * vec2[2];
 }
 
 vec3_t vec3_direction (vec3_t vec, vec3_t vec2, vec3_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0] - vec2[0],
+    numeric_t x = vec[0] - vec2[0],
         y = vec[1] - vec2[1],
         z = vec[2] - vec2[2],
         len = sqrt(x * x + y * y + z * z);
@@ -1538,7 +1540,7 @@ vec3_t vec3_direction (vec3_t vec, vec3_t vec2, vec3_t dest) {
     return dest;
 }
 
-vec3_t vec3_lerp(vec3_t vec, vec3_t vec2, double lerp, vec3_t dest) {
+vec3_t vec3_lerp(vec3_t vec, vec3_t vec2, numeric_t lerp, vec3_t dest) {
     if (!dest) { dest = vec; }
 
     dest[0] = vec[0] + lerp * (vec2[0] - vec[0]);
@@ -1548,11 +1550,11 @@ vec3_t vec3_lerp(vec3_t vec, vec3_t vec2, double lerp, vec3_t dest) {
     return dest;
 }
 
-double vec3_dist(vec3_t vec, vec3_t vec2) {
-    double x = vec2[0] - vec[0],
+numeric_t vec3_dist(vec3_t vec, vec3_t vec2) {
+    numeric_t x = vec2[0] - vec[0],
         y = vec2[1] - vec[1],
         z = vec2[2] - vec[2];
-        
+
     return sqrt(x*x + y*y + z*z);
 }
 
@@ -1560,29 +1562,29 @@ vec3_t vec3_unproject(vec3_t vec, mat4_t view, mat4_t proj, vec4_t viewport, vec
     if (!dest) { dest = vec; }
 
     mat4_t m = mat4_create(NULL);
-    double *v = malloc(sizeof(double) * 4);
-    
+    numeric_t *v = malloc(sizeof(numeric_t) * 4);
+
     v[0] = (vec[0] - viewport[0]) * 2.0 / viewport[2] - 1.0;
     v[1] = (vec[1] - viewport[1]) * 2.0 / viewport[3] - 1.0;
     v[2] = 2.0 * vec[2] - 1.0;
     v[3] = 1.0;
-    
+
     mat4_multiply(proj, view, m);
     if(!mat4_inverse(m, NULL)) { return NULL; }
-    
+
     mat4_multiplyVec4(m, v, NULL);
     if(v[3] == 0.0) { return NULL; }
 
     dest[0] = v[0] / v[3];
     dest[1] = v[1] / v[3];
     dest[2] = v[2] / v[3];
-    
+
     return dest;
 }
 
 
 vec4_t vec4_create(vec4_t vec) {
-    vec4_t dest = calloc(4, sizeof(double));
+    vec4_t dest = calloc(4, sizeof(numeric_t));
 
     if (vec) {
         dest[0] = vec[0];
@@ -1617,7 +1619,7 @@ vec4_t vec4_add(vec4_t vec, vec4_t vec2, vec4_t dest) {
     dest[1] = vec[1] + vec2[1];
     dest[2] = vec[2] + vec2[2];
     dest[3] = vec[3] + vec2[3];
-    
+
     return dest;
 }
 
@@ -1647,7 +1649,7 @@ vec4_t vec4_negate(vec4_t vec, vec4_t dest) {
     return dest;
 }
 
-vec4_t vec4_scale(vec4_t vec, double val, vec4_t dest) {
+vec4_t vec4_scale(vec4_t vec, numeric_t val, vec4_t dest) {
     if (!dest || vec == dest) {
         vec[0] *= val;
         vec[1] *= val;
@@ -1666,7 +1668,7 @@ vec4_t vec4_scale(vec4_t vec, double val, vec4_t dest) {
 vec4_t vec4_normalize(vec4_t vec, vec4_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0], y = vec[1], z = vec[2], w = vec[3],
+    numeric_t x = vec[0], y = vec[1], z = vec[2], w = vec[3],
         len = sqrt(x * x + y * y + z * z + w * w);
 
     if (!len) {
@@ -1691,19 +1693,19 @@ vec4_t vec4_normalize(vec4_t vec, vec4_t dest) {
     return dest;
 }
 
-double vec4_length(vec4_t vec) {
-    double x = vec[0], y = vec[1], z = vec[2], w = vec[3];
+numeric_t vec4_length(vec4_t vec) {
+    numeric_t x = vec[0], y = vec[1], z = vec[2], w = vec[3];
     return sqrt(x * x + y * y + z * z + w * w);
 }
 
-double vec4_dot(vec4_t vec, vec4_t vec2) {
+numeric_t vec4_dot(vec4_t vec, vec4_t vec2) {
     return vec[0] * vec2[0] + vec[1] * vec2[1] + vec[2] * vec2[2] + vec[3] * vec2[3];
 }
 
 vec4_t vec4_direction (vec4_t vec, vec4_t vec2, vec4_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0] - vec2[0],
+    numeric_t x = vec[0] - vec2[0],
         y = vec[1] - vec2[1],
         z = vec[2] - vec2[2],
         w = vec[3] - vec2[3],
@@ -1725,7 +1727,7 @@ vec4_t vec4_direction (vec4_t vec, vec4_t vec2, vec4_t dest) {
     return dest;
 }
 
-vec4_t vec4_lerp(vec4_t vec, vec4_t vec2, double lerp, vec4_t dest) {
+vec4_t vec4_lerp(vec4_t vec, vec4_t vec2, numeric_t lerp, vec4_t dest) {
     if (!dest) { dest = vec; }
 
     dest[0] = vec[0] + lerp * (vec2[0] - vec[0]);
@@ -1736,18 +1738,18 @@ vec4_t vec4_lerp(vec4_t vec, vec4_t vec2, double lerp, vec4_t dest) {
     return dest;
 }
 
-double vec4_dist(vec4_t vec, vec4_t vec2) {
-    double x = vec2[0] - vec[0],
+numeric_t vec4_dist(vec4_t vec, vec4_t vec2) {
+    numeric_t x = vec2[0] - vec[0],
         y = vec2[1] - vec[1],
         z = vec2[2] - vec[2],
         w = vec2[3] - vec[3];
-        
+
     return sqrt(x*x + y*y + z*z + w*w);
 }
 
 
 mat3_t mat3_create(mat3_t mat) {
-    mat3_t dest = calloc(9, sizeof(double));
+    mat3_t dest = calloc(9, sizeof(numeric_t));
 
     if (mat) {
         dest[0] = mat[0];
@@ -1794,7 +1796,7 @@ mat3_t mat3_identity(mat3_t dest) {
 mat3_t mat3_transpose(mat3_t mat, mat3_t dest) {
     // If we are transposing ourselves we can skip a few steps but have to cache some values
     if (!dest || mat == dest) {
-        double a01 = mat[1], a02 = mat[2],
+        numeric_t a01 = mat[1], a02 = mat[2],
             a12 = mat[5];
 
         mat[1] = mat[3];
@@ -1846,7 +1848,7 @@ mat4_t mat3_toMat4(mat3_t mat, mat4_t dest) {
 
 
 mat4_t mat4_create(mat4_t mat) {
-    mat4_t dest = calloc(16, sizeof(double));
+    mat4_t dest = calloc(16, sizeof(numeric_t));
 
     if (mat) {
         dest[0] = mat[0];
@@ -1914,7 +1916,7 @@ mat4_t mat4_identity(mat4_t dest) {
 mat4_t mat4_transpose(mat4_t mat, mat4_t dest) {
     // If we are transposing ourselves we can skip a few steps but have to cache some values
     if (!dest || mat == dest) {
-        double a01 = mat[1], a02 = mat[2], a03 = mat[3],
+        numeric_t a01 = mat[1], a02 = mat[2], a03 = mat[3],
             a12 = mat[6], a13 = mat[7],
             a23 = mat[11];
 
@@ -1952,9 +1954,9 @@ mat4_t mat4_transpose(mat4_t mat, mat4_t dest) {
     return dest;
 }
 
-double mat4_determinant(mat4_t mat) {
+numeric_t mat4_determinant(mat4_t mat) {
     // Cache the matrix values (makes for huge speed increases!)
-    double a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
+    numeric_t a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
         a10 = mat[4], a11 = mat[5], a12 = mat[6], a13 = mat[7],
         a20 = mat[8], a21 = mat[9], a22 = mat[10], a23 = mat[11],
         a30 = mat[12], a31 = mat[13], a32 = mat[14], a33 = mat[15];
@@ -1971,7 +1973,7 @@ mat4_t mat4_inverse(mat4_t mat, mat4_t dest) {
     if (!dest) { dest = mat; }
 
     // Cache the matrix values (makes for huge speed increases!)
-    double a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
+    numeric_t a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
         a10 = mat[4], a11 = mat[5], a12 = mat[6], a13 = mat[7],
         a20 = mat[8], a21 = mat[9], a22 = mat[10], a23 = mat[11],
         a30 = mat[12], a31 = mat[13], a32 = mat[14], a33 = mat[15],
@@ -2057,7 +2059,7 @@ mat3_t mat4_toMat3(mat4_t mat, mat3_t dest) {
 
 mat3_t mat4_toInverseMat3(mat4_t mat, mat3_t dest) {
     // Cache the matrix values (makes for huge speed increases!)
-    double a00 = mat[0], a01 = mat[1], a02 = mat[2],
+    numeric_t a00 = mat[0], a01 = mat[1], a02 = mat[2],
         a10 = mat[4], a11 = mat[5], a12 = mat[6],
         a20 = mat[8], a21 = mat[9], a22 = mat[10],
 
@@ -2090,7 +2092,7 @@ mat4_t mat4_multiply(mat4_t mat, mat4_t mat2, mat4_t dest) {
     if (!dest) { dest = mat; }
 
     // Cache the matrix values (makes for huge speed increases!)
-    double a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
+    numeric_t a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3],
         a10 = mat[4], a11 = mat[5], a12 = mat[6], a13 = mat[7],
         a20 = mat[8], a21 = mat[9], a22 = mat[10], a23 = mat[11],
         a30 = mat[12], a31 = mat[13], a32 = mat[14], a33 = mat[15],
@@ -2123,7 +2125,7 @@ mat4_t mat4_multiply(mat4_t mat, mat4_t mat2, mat4_t dest) {
 vec3_t mat4_multiplyVec3(mat4_t mat, vec3_t vec, vec3_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0], y = vec[1], z = vec[2];
+    numeric_t x = vec[0], y = vec[1], z = vec[2];
 
     dest[0] = mat[0] * x + mat[4] * y + mat[8] * z + mat[12];
     dest[1] = mat[1] * x + mat[5] * y + mat[9] * z + mat[13];
@@ -2135,7 +2137,7 @@ vec3_t mat4_multiplyVec3(mat4_t mat, vec3_t vec, vec3_t dest) {
 vec4_t mat4_multiplyVec4(mat4_t mat, vec4_t vec, vec4_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0], y = vec[1], z = vec[2], w = vec[3];
+    numeric_t x = vec[0], y = vec[1], z = vec[2], w = vec[3];
 
     dest[0] = mat[0] * x + mat[4] * y + mat[8] * z + mat[12] * w;
     dest[1] = mat[1] * x + mat[5] * y + mat[9] * z + mat[13] * w;
@@ -2146,7 +2148,7 @@ vec4_t mat4_multiplyVec4(mat4_t mat, vec4_t vec, vec4_t dest) {
 }
 
 mat4_t mat4_translate(mat4_t mat, vec3_t vec, mat4_t dest) {
-    double x = vec[0], y = vec[1], z = vec[2],
+    numeric_t x = vec[0], y = vec[1], z = vec[2],
         a00, a01, a02, a03,
         a10, a11, a12, a13,
         a20, a21, a22, a23;
@@ -2175,7 +2177,7 @@ mat4_t mat4_translate(mat4_t mat, vec3_t vec, mat4_t dest) {
 }
 
 mat4_t mat4_scale(mat4_t mat, vec3_t vec, mat4_t dest) {
-    double x = vec[0], y = vec[1], z = vec[2];
+    numeric_t x = vec[0], y = vec[1], z = vec[2];
 
     if (!dest || mat == dest) {
         mat[0] *= x;
@@ -2212,8 +2214,8 @@ mat4_t mat4_scale(mat4_t mat, vec3_t vec, mat4_t dest) {
     return dest;
 }
 
-mat4_t mat4_rotate(mat4_t mat, double angle, vec3_t axis, mat4_t dest) {
-    double x = axis[0], y = axis[1], z = axis[2],
+mat4_t mat4_rotate(mat4_t mat, numeric_t angle, vec3_t axis, mat4_t dest) {
+    numeric_t x = axis[0], y = axis[1], z = axis[2],
         len = sqrt(x * x + y * y + z * z),
         s, c, t,
         a00, a01, a02, a03,
@@ -2271,8 +2273,8 @@ mat4_t mat4_rotate(mat4_t mat, double angle, vec3_t axis, mat4_t dest) {
     return dest;
 }
 
-mat4_t mat4_rotateX(mat4_t mat, double angle, mat4_t dest) {
-    double s = sin(angle),
+mat4_t mat4_rotateX(mat4_t mat, numeric_t angle, mat4_t dest) {
+    numeric_t s = sin(angle),
         c = cos(angle),
         a10 = mat[4],
         a11 = mat[5],
@@ -2310,8 +2312,8 @@ mat4_t mat4_rotateX(mat4_t mat, double angle, mat4_t dest) {
     return dest;
 }
 
-mat4_t mat4_rotateY(mat4_t mat, double angle, mat4_t dest) {
-    double s = sin(angle),
+mat4_t mat4_rotateY(mat4_t mat, numeric_t angle, mat4_t dest) {
+    numeric_t s = sin(angle),
         c = cos(angle),
         a00 = mat[0],
         a01 = mat[1],
@@ -2349,8 +2351,8 @@ mat4_t mat4_rotateY(mat4_t mat, double angle, mat4_t dest) {
     return dest;
 }
 
-mat4_t mat4_rotateZ(mat4_t mat, double angle, mat4_t dest) {
-    double s = sin(angle),
+mat4_t mat4_rotateZ(mat4_t mat, numeric_t angle, mat4_t dest) {
+    numeric_t s = sin(angle),
         c = cos(angle),
         a00 = mat[0],
         a01 = mat[1],
@@ -2389,9 +2391,9 @@ mat4_t mat4_rotateZ(mat4_t mat, double angle, mat4_t dest) {
     return dest;
 }
 
-mat4_t mat4_frustum(double left, double right, double bottom, double top, double near, double far, mat4_t dest) {
+mat4_t mat4_frustum(numeric_t left, numeric_t right, numeric_t bottom, numeric_t top, numeric_t near, numeric_t far, mat4_t dest) {
     if (!dest) { dest = mat4_create(NULL); }
-    double rl = (right - left),
+    numeric_t rl = (right - left),
         tb = (top - bottom),
         fn = (far - near);
     dest[0] = (near * 2) / rl;
@@ -2413,15 +2415,15 @@ mat4_t mat4_frustum(double left, double right, double bottom, double top, double
     return dest;
 }
 
-mat4_t mat4_perspective(double fovy, double aspect, double near, double far, mat4_t dest) {
-    double top = near * tan(fovy * 3.14159265358979323846 / 360.0),
+mat4_t mat4_perspective(numeric_t fovy, numeric_t aspect, numeric_t near, numeric_t far, mat4_t dest) {
+    numeric_t top = near * tan(fovy * 3.14159265358979323846 / 360.0),
         right = top * aspect;
     return mat4_frustum(-right, right, -top, top, near, far, dest);
 }
 
-mat4_t mat4_ortho(double left, double right, double bottom, double top, double near, double far, mat4_t dest) {
+mat4_t mat4_ortho(numeric_t left, numeric_t right, numeric_t bottom, numeric_t top, numeric_t near, numeric_t far, mat4_t dest) {
     if (!dest) { dest = mat4_create(NULL); }
-    double rl = (right - left),
+    numeric_t rl = (right - left),
         tb = (top - bottom),
         fn = (far - near);
     dest[0] = 2 / rl;
@@ -2446,7 +2448,7 @@ mat4_t mat4_ortho(double left, double right, double bottom, double top, double n
 mat4_t mat4_lookAt(vec3_t eye, vec3_t center, vec3_t up, mat4_t dest) {
     if (!dest) { dest = mat4_create(NULL); }
 
-    double x0, x1, x2, y0, y1, y2, z0, z1, z2, len,
+    numeric_t x0, x1, x2, y0, y1, y2, z0, z1, z2, len,
         eyex = eye[0],
         eyey = eye[1],
         eyez = eye[2],
@@ -2529,7 +2531,7 @@ mat4_t mat4_fromRotationTranslation(quat_t quat, vec3_t vec, mat4_t dest) {
     if (!dest) { dest = mat4_create(NULL); }
 
     // Quaternion math
-    double x = quat[0], y = quat[1], z = quat[2], w = quat[3],
+    numeric_t x = quat[0], y = quat[1], z = quat[2], w = quat[3],
         x2 = x + x,
         y2 = y + y,
         z2 = z + z,
@@ -2566,7 +2568,7 @@ mat4_t mat4_fromRotationTranslation(quat_t quat, vec3_t vec, mat4_t dest) {
 
 
 quat_t quat_create(quat_t quat) {
-    quat_t dest = calloc(4, sizeof(double));
+    quat_t dest = calloc(4, sizeof(numeric_t));
 
     if (quat) {
         dest[0] = quat[0];
@@ -2588,7 +2590,7 @@ quat_t quat_set(quat_t quat, quat_t dest) {
 }
 
 quat_t quat_calculateW(quat_t quat, quat_t dest) {
-    double x = quat[0], y = quat[1], z = quat[2];
+    numeric_t x = quat[0], y = quat[1], z = quat[2];
 
     if (!dest || quat == dest) {
         quat[3] = -sqrt(fabs(1.0 - x * x - y * y - z * z));
@@ -2601,12 +2603,12 @@ quat_t quat_calculateW(quat_t quat, quat_t dest) {
     return dest;
 }
 
-double quat_dot(quat_t quat, quat_t quat2) {
+numeric_t quat_dot(quat_t quat, quat_t quat2) {
     return quat[0]*quat2[0] + quat[1]*quat2[1] + quat[2]*quat2[2] + quat[3]*quat2[3];
 }
 
 quat_t quat_inverse(quat_t quat, quat_t dest) {
-    double dot = quat_dot(quat,quat),
+    numeric_t dot = quat_dot(quat,quat),
         invDot = 1.0/dot;
     if(!dest || quat == dest) {
         quat[0] *= -invDot;
@@ -2636,15 +2638,15 @@ quat_t quat_conjugate(quat_t quat, quat_t dest) {
     return dest;
 }
 
-double quat_length(quat_t quat) {
-    double x = quat[0], y = quat[1], z = quat[2], w = quat[3];
+numeric_t quat_length(quat_t quat) {
+    numeric_t x = quat[0], y = quat[1], z = quat[2], w = quat[3];
     return sqrt(x * x + y * y + z * z + w * w);
 }
 
 quat_t quat_normalize(quat_t quat, quat_t dest) {
     if (!dest) { dest = quat; }
 
-    double x = quat[0], y = quat[1], z = quat[2], w = quat[3],
+    numeric_t x = quat[0], y = quat[1], z = quat[2], w = quat[3],
         len = sqrt(x * x + y * y + z * z + w * w);
     if (len == 0) {
         dest[0] = 0;
@@ -2665,7 +2667,7 @@ quat_t quat_normalize(quat_t quat, quat_t dest) {
 quat_t quat_multiply(quat_t quat, quat_t quat2, quat_t dest) {
     if (!dest) { dest = quat; }
 
-    double qax = quat[0], qay = quat[1], qaz = quat[2], qaw = quat[3],
+    numeric_t qax = quat[0], qay = quat[1], qaz = quat[2], qaw = quat[3],
         qbx = quat2[0], qby = quat2[1], qbz = quat2[2], qbw = quat2[3];
 
     dest[0] = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
@@ -2679,7 +2681,7 @@ quat_t quat_multiply(quat_t quat, quat_t quat2, quat_t dest) {
 quat_t quat_multiplyVec3(quat_t quat, vec3_t vec, vec3_t dest) {
     if (!dest) { dest = vec; }
 
-    double x = vec[0], y = vec[1], z = vec[2],
+    numeric_t x = vec[0], y = vec[1], z = vec[2],
         qx = quat[0], qy = quat[1], qz = quat[2], qw = quat[3],
 
         // calculate quat * vec
@@ -2699,7 +2701,7 @@ quat_t quat_multiplyVec3(quat_t quat, vec3_t vec, vec3_t dest) {
 mat3_t quat_toMat3(quat_t quat, mat3_t dest) {
     if (!dest) { dest = mat3_create(NULL); }
 
-    double x = quat[0], y = quat[1], z = quat[2], w = quat[3],
+    numeric_t x = quat[0], y = quat[1], z = quat[2], w = quat[3],
         x2 = x + x,
         y2 = y + y,
         z2 = z + z,
@@ -2732,7 +2734,7 @@ mat3_t quat_toMat3(quat_t quat, mat3_t dest) {
 quat_t quat_toMat4(quat_t quat, mat4_t dest) {
     if (!dest) { dest = mat4_create(NULL); }
 
-    double x = quat[0], y = quat[1], z = quat[2], w = quat[3],
+    numeric_t x = quat[0], y = quat[1], z = quat[2], w = quat[3],
         x2 = x + x,
         y2 = y + y,
         z2 = z + z,
@@ -2770,10 +2772,10 @@ quat_t quat_toMat4(quat_t quat, mat4_t dest) {
     return dest;
 }
 
-quat_t quat_slerp(quat_t quat, quat_t quat2, double slerp, quat_t dest) {
+quat_t quat_slerp(quat_t quat, quat_t quat2, numeric_t slerp, quat_t dest) {
     if (!dest) { dest = quat; }
 
-    double cosHalfTheta = quat[0] * quat2[0] + quat[1] * quat2[1] + quat[2] * quat2[2] + quat[3] * quat2[3],
+    numeric_t cosHalfTheta = quat[0] * quat2[0] + quat[1] * quat2[1] + quat[2] * quat2[2] + quat[3] * quat2[3],
         halfTheta,
         sinHalfTheta,
         ratioA,
@@ -2830,9 +2832,9 @@ void mat3_str(mat3_t mat, char *buffer) {
 
 void mat4_str(mat4_t mat, char *buffer) {
     sprintf(buffer, "[%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f]",
-        mat[0], mat[1], mat[2], mat[3], 
+        mat[0], mat[1], mat[2], mat[3],
         mat[4], mat[5], mat[6], mat[7],
-        mat[8], mat[9], mat[10], mat[11], 
+        mat[8], mat[9], mat[10], mat[11],
         mat[12], mat[13], mat[14], mat[15]);
 }
 
