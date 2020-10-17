@@ -202,6 +202,20 @@ int main(int argc, char *argv[]) {
 		fx_vertex_v3(vertices[4]); fx_texcoord(1, 1); fx_normal_v3(normals[4]);
 		fx_vertex_v3(vertices[7]); fx_texcoord(0, 0); fx_normal_v3(normals[7]);
 	fx_end();
+
+
+	bm_set_color(viewport, 0x00FF00);
+	fx_line(vertices[0], vertices[1]);
+	fx_line(vertices[1], vertices[3]);
+	fx_line(vertices[3], vertices[2]);
+	fx_line(vertices[2], vertices[0]);
+
+	bm_set_color(viewport, 0xFF0000);
+	fx_line(vertices[0], vertices[1]);
+	fx_line(vertices[1], vertices[5]);
+	fx_line(vertices[5], vertices[4]);
+	fx_line(vertices[4], vertices[0]);
+
 #endif
 
 	bm_save(viewport, "out.gif");

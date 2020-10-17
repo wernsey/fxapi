@@ -4,7 +4,9 @@
  */
 
 #include <stdlib.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
+#include <float.h>
 #include <assert.h>
 
 #define GL_MATRIX_IMPLEMENTATION
@@ -745,4 +747,121 @@ void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags) {
     fx_set_view(save_view);
     Backface = save_backface;
     Lighting = save_light;
+}
+
+static void transform_vertex(vec3_t in, vec4_t out) {
+    out[0] = in[0];
+    out[1] = in[1];
+    out[2] = in[2];
+    out[3] = 1.0;
+    mat4_multiplyVec4(M_Xform, out, out);
+}
+
+static void line_3d(vec4_t p0, vec4_t p1) {
+
+    p0[0] = (p0[0]/p0[3] + 1) * Target->w / 2.0;
+    p0[1] = (-p0[1]/p0[3] + 1) * Target->h / 2.0;
+    p0[2] =  1.0/(p0[3] * p0[2]);
+    p1[0] = (p1[0]/p1[3] + 1) * Target->w / 2.0;
+    p1[1] = (-p1[1]/p1[3] + 1) * Target->h / 2.0;
+    p1[2] =  1.0/(p1[3] * p1[2]);
+
+    int x0 = p0[0];
+    int y0 = p0[1];
+    double z0 =  p0[2];
+    int x1 = p1[0];
+    int y1 = p1[1];
+    double z1 =  p1[2];
+
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    int sx, sy;
+    int err, e2;
+
+    if(dx < 0) dx = -dx;
+    if(dy < 0) dy = -dy;
+
+    if(x0 < x1)
+        sx = 1;
+    else
+        sx = -1;
+    if(y0 < y1)
+        sy = 1;
+    else
+        sy = -1;
+
+    err = dx - dy;
+
+    double dzx, dzy;
+    dzx = dx != 0 ? (z1 - z0)/dx : 0.0;
+    dzy = dy != 0 ? (z1 - z0)/dy : 0.0;
+
+    for(;;) {
+        if(x0 >= Target->clip.x0 && x0 < Target->clip.x1 && y0 >= Target->clip.y0 && y0 < Target->clip.y1 && z0 >= 0 && z0 < 1.0) {
+            /* DBL_EPSILON is there to give lines preference.
+            Useful when using lines to draw triangle edges. */
+            if(z0 < ZBuf[y0 * Target->w + x0] + DBL_EPSILON) {
+                ZBuf[y0 * Target->w + x0] = z0;
+                bm_set(Target, x0, y0, Target->color);
+            }
+        }
+
+        if(x0 == x1 && y0 == y1) break;
+
+        e2 = 2 * err;
+
+        if(e2 > -dy) {
+            err -= dy;
+            x0 += sx;
+            z0 += dzx;
+        }
+        if(e2 < dx) {
+            err += dx;
+            y0 += sy;
+            z0 += dzy;
+        }
+    }
+}
+
+static void clip_line_3d(vec4_t p0, vec4_t p1, int n) {
+    if(n == (sizeof ClipPlanes/sizeof ClipPlanes[0])) {
+       line_3d(p0, p1);
+    } else {
+        double *P = ClipPlanes[n];
+
+        int i0 = inside_plane(p0, P);
+        int i1 = inside_plane(p1, P);
+        if(!i0) {
+            if(!i1) {
+                return;
+            }
+            double t = intersect(p1, p0, P);
+
+            p0[0] = (p0[0] - p1[0]) * t + p1[0];
+            p0[1] = (p0[1] - p1[1]) * t + p1[1];
+            p0[2] = (p0[2] - p1[2]) * t + p1[2];
+            p0[3] = (p0[3] - p1[3]) * t + p1[3];
+
+        } else if(!i1) {
+            double t = intersect(p0, p1, P);
+
+            p1[0] = (p1[0] - p0[0]) * t + p0[0];
+            p1[1] = (p1[1] - p0[1]) * t + p0[1];
+            p1[2] = (p1[2] - p0[2]) * t + p0[2];
+            p1[3] = (p1[3] - p0[3]) * t + p0[3];
+        }
+        clip_line_3d(p0, p1, n + 1);
+    }
+}
+
+void fx_line(vec3_t p0, vec3_t p1) {
+    double q0[4], q1[4];
+
+    transform_vertex(p0, q0);
+    transform_vertex(p1, q1);
+
+    q0[2] = 1.0/q0[2];
+    q1[2] = 1.0/q1[2];
+
+    clip_line_3d(q0, q1, 0);
 }

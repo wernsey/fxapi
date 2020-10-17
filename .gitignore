@@ -1,11 +1,12 @@
 app
-app.exe
+*.exe
 *.o
 *.a
 *.zip
+*.bak
 
-.vscode
 .gdbinit
+.vscode
 
 # Output files of the test program
 out.gif

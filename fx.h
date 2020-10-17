@@ -3,8 +3,9 @@
 
 #ifndef GL_MATRIX_H
 /* #include "glmatrix.h" */
-typedef double *vec3_t;
-typedef double *mat4_t;
+typedef double numeric_t;
+typedef numeric_t *vec3_t;
+typedef numeric_t *mat4_t;
 #endif
 #ifndef BMP_H
 /* #include "bmp.h" */
@@ -65,5 +66,7 @@ void fx_ctorgb(unsigned int c, double *r, double *g, double *b);
 
 void fx_billboard(vec3_t pos, double scale, int flags);
 void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags);
+
+void fx_line(vec3_t p0, vec3_t p1);
 
 #endif
