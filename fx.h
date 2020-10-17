@@ -3,7 +3,10 @@
 
 #ifndef GL_MATRIX_H
 /* #include "glmatrix.h" */
-typedef double numeric_t;
+typedef double numeric_t;  /* You need to be really sure
+                            * this is the same as in glmatrix.h
+                            */
+typedef numeric_t *vec2_t;
 typedef numeric_t *vec3_t;
 typedef numeric_t *mat4_t;
 #endif

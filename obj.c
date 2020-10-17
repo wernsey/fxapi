@@ -27,7 +27,6 @@
 #include "obj.h"
 
 #ifndef OBJ_NODRAW
-#include "glmatrix.h"
 #include "fx.h"
 #endif
 

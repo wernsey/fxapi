@@ -79,8 +79,8 @@ void fx_set_viewport(Bitmap *target) {
 
     Target = target;
 
-    V_Width = target->w;
-    V_Height = target->h;
+    V_Width = bm_width(Target);
+    V_Height = bm_height(Target);
 
     ZBuf = calloc(V_Width * V_Height, sizeof *ZBuf);
 
@@ -119,7 +119,7 @@ void fx_cleanup() {
 void fx_clear_zbuf() {
     int i;
     assert(ZBuf);
-    for(i = 0; i <= V_Width * V_Height; i++)
+    for(i = 0; i < V_Width * V_Height; i++)
         ZBuf[i] = 1.0;
 }
 
@@ -171,10 +171,12 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
     int ymin = (int)MIN(v0[1], MIN(v1[1], v2[1]));
     int ymax = (int)MAX(v0[1], MAX(v1[1], v2[1]));
 
-    if(xmin < Target->clip.x0) xmin = Target->clip.x0;
-    if(xmax >= Target->clip.x1) xmax = Target->clip.x1 - 1;
-    if(ymin < Target->clip.y0) ymin = Target->clip.y0;
-    if(ymax >= Target->clip.y1) ymax = Target->clip.y1 - 1;
+    BmRect clip = bm_get_clip(Target);
+
+    if(xmin < clip.x0) xmin = clip.x0;
+    if(xmax >= clip.x1) xmax = clip.x1 - 1;
+    if(ymin < clip.y0) ymin = clip.y0;
+    if(ymax >= clip.y1) ymax = clip.y1 - 1;
 
     int lighting = (Lighting && NNorms == NVerts) || (NCols == NVerts);
 
@@ -182,15 +184,16 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
     unsigned int trans_color;
     int tex_x, tex_y, tex_w, tex_h;
     if(NTexs == NVerts && Texture) {
-        trans_color = Texture->color & 0x00FFFFFF;
-        tex_x = Texture->clip.x0;
-        tex_y = Texture->clip.y0;
-        tex_w = Texture->clip.x1 - Texture->clip.x0;
-        tex_h = Texture->clip.y1 - Texture->clip.y0;
+        clip = bm_get_clip(Texture);
+        trans_color = bm_get_color(Texture) & 0x00FFFFFF;
+        tex_x = clip.x0;
+        tex_y = clip.y0;
+        tex_w = clip.x1 - clip.x0;
+        tex_h = clip.y1 - clip.y0;
         assert(tex_x >= 0 && tex_y >= 0);
         assert(tex_w > 0 && tex_h > 0);
     } else {
-        fx_ctorgb(Target->color, &texel[0], &texel[1], &texel[2]);
+        fx_ctorgb(bm_get_color(Target), &texel[0], &texel[1], &texel[2]);
         vec3_scale(texel, 255, NULL);
     }
     double default_rgb[] = {1,1,1};
@@ -636,10 +639,14 @@ void fx_blend(int enabled) {
 }
 
 void fx_set_pick(Bitmap *pick) {
-    assert(Target);
-    assert(pick->w >= Target->w && pick->h >= Target->h);
-    if(Target && pick->w >= Target->w && pick->h >= Target->h)
-        Pick = pick;
+    if(!pick) {
+        Pick = NULL;
+    } else {
+        assert(Target);
+        assert(bm_width(pick) >= bm_width(Target) && bm_height(pick) >= bm_height(Target));
+        if(bm_width(pick) >= bm_width(Target) && bm_height(pick) >= bm_height(Target))
+            Pick = pick;
+    }
 }
 
 void fx_ctorgb(unsigned int c, double *r, double *g, double *b) {
@@ -759,11 +766,11 @@ static void transform_vertex(vec3_t in, vec4_t out) {
 
 static void line_3d(vec4_t p0, vec4_t p1) {
 
-    p0[0] = (p0[0]/p0[3] + 1) * Target->w / 2.0;
-    p0[1] = (-p0[1]/p0[3] + 1) * Target->h / 2.0;
+    p0[0] = (p0[0]/p0[3] + 1) * bm_width(Target) / 2.0;
+    p0[1] = (-p0[1]/p0[3] + 1) * bm_height(Target) / 2.0;
     p0[2] =  1.0/(p0[3] * p0[2]);
-    p1[0] = (p1[0]/p1[3] + 1) * Target->w / 2.0;
-    p1[1] = (-p1[1]/p1[3] + 1) * Target->h / 2.0;
+    p1[0] = (p1[0]/p1[3] + 1) * bm_width(Target) / 2.0;
+    p1[1] = (-p1[1]/p1[3] + 1) * bm_height(Target) / 2.0;
     p1[2] =  1.0/(p1[3] * p1[2]);
 
     int x0 = p0[0];
@@ -796,13 +803,17 @@ static void line_3d(vec4_t p0, vec4_t p1) {
     dzx = dx != 0 ? (z1 - z0)/dx : 0.0;
     dzy = dy != 0 ? (z1 - z0)/dy : 0.0;
 
+    unsigned int color = bm_get_color(Target);
+    BmRect clip = bm_get_clip(Target);
+
     for(;;) {
-        if(x0 >= Target->clip.x0 && x0 < Target->clip.x1 && y0 >= Target->clip.y0 && y0 < Target->clip.y1 && z0 >= 0 && z0 < 1.0) {
+        if(x0 >= clip.x0 && x0 < clip.x1 && y0 >= clip.y0 && y0 < clip.y1 && z0 >= 0 && z0 < 1.0) {
             /* DBL_EPSILON is there to give lines preference.
             Useful when using lines to draw triangle edges. */
-            if(z0 < ZBuf[y0 * Target->w + x0] + DBL_EPSILON) {
-                ZBuf[y0 * Target->w + x0] = z0;
-                bm_set(Target, x0, y0, Target->color);
+            int w = bm_width(Target);
+            if(z0 < ZBuf[y0 * w + x0] + DBL_EPSILON) {
+                ZBuf[y0 * w + x0] = z0;
+                bm_set(Target, x0, y0, color);
             }
         }
 

@@ -30,9 +30,8 @@ int main(int argc, char *argv[]) {
 	/* The pick buffer is just a second bitmap that will be colored
 	as the renderer draws pixels. It uses the color of that bitmap.
 	You need to manage its memory yourself. */
-	pick_buffer = bm_create(viewport->w, viewport->h);
-	if(!pick_buffer)
-	if(!tex) {
+	pick_buffer = bm_create(bm_width(viewport), bm_height(viewport));
+	if(!pick_buffer) {
 		fprintf(stderr, "couldn't create pick buffer\n");
 		return 1;
 	}
@@ -42,7 +41,7 @@ int main(int argc, char *argv[]) {
 	bm_printf(viewport, 10, 10, "Hello World");
 
 	/* The renderer respects the target bitmap's clipping rectangle */
-	bm_clip(viewport, 20, 20, viewport->w - 20, viewport->h - 20);
+	bm_clip(viewport, 20, 20, bm_width(viewport) - 20, bm_height(viewport) - 20);
 
 	/* The fog effect is a simple linear fog with a color
 		and near/far parameters */

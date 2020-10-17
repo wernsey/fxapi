@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-c -Wall
-LDFLAGS=-lm 
+LDFLAGS=-lm
 
 # TODO: Remove this one things stabilize
 BUILD=debug
@@ -22,6 +22,10 @@ CFLAGS += -O2 -DNDEBUG
 LDFLAGS += -s
 endif
 
+ifeq ($(OS),Windows_NT)
+  EXECUTABLE:=$(EXECUTABLE).exe
+endif
+
 all: $(EXECUTABLE)
 
 lib: $(LIB)
@@ -31,7 +35,7 @@ debug:
 
 $(EXECUTABLE): main.o $(LIB)
 	$(CC) $^ $(LDFLAGS) -o $@
-	
+
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
 
@@ -39,11 +43,11 @@ $(LIB): $(OBJECTS)
 	ar rs $@ $^
 
 # Add header dependencies here
-main.o : main.c fx.h glmatrix.h fx.h
+main.o : main.c bmp.h fx.h glmatrix.h fx.h
 bmp.o : bmp.c bmp.h
 fx.o: fx.c fx.h bmp.h glmatrix.h fx.h
-obj.o : obj.c obj.h glmatrix.h fx.h
-md2.o : md2.h md2.h glmatrix.h fx.h
+obj.o : obj.c obj.h fx.h
+md2.o : md2.h md2.h fx.h
 
 .PHONY : clean dist
 
@@ -53,8 +57,8 @@ dist.zip: clean
 
 clean: sweep
 	-rm -f $(LIB)
-	-rm -f $(EXECUTABLE) $(EXECUTABLE).exe
-	
+	-rm -f $(EXECUTABLE)
+
 sweep:
 	-rm -f *.o ./gdi/*.o gl-matrix/*.o
 	-rm -f out.gif pick.gif
