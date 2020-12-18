@@ -55,6 +55,8 @@ void fx_backface(int enabled);
 
 void fx_blend(int enabled);
 
+void fx_texture_dither(int enabled);
+
 void fx_fog(int enabled);
 void fx_fog_params(double r, double g, double b, double near, double far);
 
@@ -71,5 +73,7 @@ void fx_billboard(vec3_t pos, double scale, int flags);
 void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags);
 
 void fx_line(vec3_t p0, vec3_t p1);
+
+void fx_line_d(double x0, double y0, double z0, double x1, double y1, double z1);
 
 #endif

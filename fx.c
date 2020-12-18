@@ -49,6 +49,8 @@ static int NCols = 0;
 
 static Bitmap *Texture = NULL;
 
+static int TextureDither = 0;
+
 static int Transparent = 0;
 
 static int Blend = 0;
@@ -179,11 +181,13 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
     if(ymax >= clip.y1) ymax = clip.y1 - 1;
 
     int lighting = (Lighting && NNorms == NVerts) || (NCols == NVerts);
+    int texture = NTexs == NVerts && Texture;
 
     double texel[3];
     unsigned int trans_color;
     int tex_x, tex_y, tex_w, tex_h;
-    if(NTexs == NVerts && Texture) {
+    double sween[4][2];
+    if(texture) {
         clip = bm_get_clip(Texture);
         trans_color = bm_get_color(Texture) & 0x00FFFFFF;
         tex_x = clip.x0;
@@ -192,6 +196,19 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
         tex_h = clip.y1 - clip.y0;
         assert(tex_x >= 0 && tex_y >= 0);
         assert(tex_w > 0 && tex_h > 0);
+
+        /*
+        Tim Sweeny described this technique for dithering textures in screen space
+        Unreal's software renderer to make it look like bilinear filtering.
+        https://www.flipcode.com/archives/Texturing_As_In_Unreal.shtml
+        */
+        double sween_f = 0.25;
+        if(TextureDither) {
+            sween[0][0] = (sween_f*1) / tex_w; sween[0][1] = (sween_f*0) / tex_h;
+            sween[1][0] = (sween_f*3) / tex_w; sween[1][1] = (sween_f*2) / tex_h;
+            sween[2][0] = (sween_f*2) / tex_w; sween[2][1] = (sween_f*3) / tex_h;
+            sween[3][0] = (sween_f*0) / tex_w; sween[3][1] = (sween_f*1) / tex_h;
+        }
     } else {
         fx_ctorgb(bm_get_color(Target), &texel[0], &texel[1], &texel[2]);
         vec3_scale(texel, 255, NULL);
@@ -220,9 +237,14 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
                 double rgb[3];
                 unsigned int color;
 
-                if(NTexs == NVerts && Texture) {
+                if(texture) {
                     double u = t0[0] * bc_clip[0] + t1[0] * bc_clip[1] + t2[0] * bc_clip[2];
                     double v = t0[1] * bc_clip[0] + t1[1] * bc_clip[1] + t2[1] * bc_clip[2];
+
+                    if(TextureDither) {
+                        int si = ((P[0] & 1) << 1) + (P[1] & 1);
+                        u += sween[si][0]; v += sween[si][1];
+                    }
 
                     while(u >= 1.0) u -= 1.0;
                     while(u < 0.0) u += 1.0;
@@ -256,13 +278,13 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
 
                 color = bm_rgb(rgb[0] * texel[0], rgb[1] * texel[1], rgb[2] * texel[2]);
 
-                // color = 255 * (1.0 - z);
-                // color = bm_rgb(color,color,color);
-
                 if(Blend) {
                     unsigned int color2 = bm_get(Target, P[0], P[1]);
                     color = ((color >> 1) & 0x007F7F7F) + ((color2 >> 1) & 0x007F7F7F);
                 }
+
+                // color = 255 * (1.0 - z);
+                // color = bm_rgb(color,color,color);
 
                 bm_set(Target, P[0], P[1], color);
 
@@ -501,8 +523,8 @@ int fx_end() {
 }
 
 int fx_vertex(double x, double y, double z) {
-    assert(NVerts < VARRAY_SIZE); // If this fails, you need to increase VARRAY_SIZE
-    assert(Begun); // Make sure you're between `fx_begin()` and `fx_end()` calls
+    assert(NVerts < VARRAY_SIZE && "You need to increase VARRAY_SIZE");
+    assert(Begun && "`fx_vertex()` must be called between `fx_begin()` and `fx_end()`");
     if(NVerts > VARRAY_SIZE || !Begun)
         return 0;
     vec4_t V = VArray[NVerts++];
@@ -515,8 +537,8 @@ int fx_vertex(double x, double y, double z) {
 }
 
 int fx_texcoord(double u, double v) {
-    assert(NTexs < VARRAY_SIZE);
-    assert(Begun);
+    assert(NTexs < VARRAY_SIZE && "You need to increase VARRAY_SIZE");
+    assert(Begun && "`fx_texcoord()` must be called between `fx_begin()` and `fx_end()`");
     if(NTexs > VARRAY_SIZE || !Begun)
         return 0;
     vec2_t T = TArray[NTexs++];
@@ -526,8 +548,8 @@ int fx_texcoord(double u, double v) {
 }
 
 int fx_normal(double x, double y, double z) {
-    assert(NNorms < VARRAY_SIZE); // If this fails, you need to increase VARRAY_SIZE
-    assert(Begun); // Make sure you're between `fx_begin()` and `fx_end()` calls
+    assert(NNorms < VARRAY_SIZE && "You need to increase VARRAY_SIZE");
+    assert(Begun && "`fx_normal()` must be called between `fx_begin()` and `fx_end()`");
     if(NNorms > VARRAY_SIZE || !Begun)
         return 0;
     vec3_t V = NArray[NNorms++];
@@ -538,8 +560,8 @@ int fx_normal(double x, double y, double z) {
 }
 
 int fx_color(double r, double g, double b) {
-    assert(NCols < VARRAY_SIZE);
-    assert(Begun);
+    assert(NCols < VARRAY_SIZE && "You need to increase VARRAY_SIZE");
+    assert(Begun && "`fx_color()` must be called between `fx_begin()` and `fx_end()`");
     if(NCols > VARRAY_SIZE || !Begun)
         return 0;
     vec3_t C = CArray[NCols++];
@@ -550,8 +572,7 @@ int fx_color(double r, double g, double b) {
 }
 
 void fx_set_model(mat4_t m) {
-    /* Don't change the matrices between `fx_begin()` and `fx_end()` */
-    assert(!Begun);
+    assert(!Begun && "Don't change the matrices between `fx_begin()` and `fx_end()`");
     if(!Begun) {
         mat4_set(m, M_Model);
         Xform_dirty = 1;
@@ -562,7 +583,7 @@ void fx_save_model(mat4_t dest) {
 }
 
 void fx_set_view(mat4_t m) {
-    assert(!Begun);
+    assert(!Begun && "Don't change the matrices between `fx_begin()` and `fx_end()`");
     if(!Begun) {
         mat4_set(m, M_View);
         mat4_inverse(M_View, M_View_Inv);
@@ -574,7 +595,7 @@ void fx_save_view(mat4_t dest) {
 }
 
 void fx_set_projection(mat4_t m) {
-    assert(!Begun);
+    assert(!Begun && "Don't change the matrices between `fx_begin()` and `fx_end()`");
     if(!Begun) {
         mat4_set(m, M_Projection);
         Xform_dirty = 1;
@@ -638,6 +659,10 @@ void fx_blend(int enabled) {
     Blend = enabled;
 }
 
+void fx_texture_dither(int enabled) {
+    TextureDither = enabled;
+}
+
 void fx_set_pick(Bitmap *pick) {
     if(!pick) {
         Pick = NULL;
@@ -664,7 +689,7 @@ of the billboard from the camera position and normalize.
 If you don't supply the camera position to the function, it will
 use translation part of the inverse of the view matrix to get
 the camera position, but this assumes that the view matrix is
-not scaled or skewed (which is normally true).
+not scaled or skewed (which is normally the case).
 https://community.khronos.org/t/extracting-camera-position-from-a-modelview-matrix/68031
 https://gamedev.stackexchange.com/questions/22283/how-to-get-translation-from-view-matrix
 https://gamedev.stackexchange.com/a/138209/25926
@@ -685,17 +710,22 @@ void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags) {
 
     mat4_identity(model);
     mat4_translate(model, pos, NULL);
-    double sv[] = {scale, scale, scale};
-    mat4_scale(model, sv, NULL);
+    //double sv[] = {scale, scale, scale};
+    //mat4_scale(model, sv, NULL);
     mat4_multiply(M_View, model, modelview);
 
+    BmRect tclip = bm_get_clip(Texture);
+    int tw = tclip.x1 - tclip.x0, th = tclip.y1 - tclip.y0;
+    double scale_x = scale * tw / th, scale_y = scale;
+
     if(flags & BB_CYLINDRICAL) {
-        modelview[0] = 1; modelview[1] = 0; modelview[2] = 0;
-        modelview[8] = 0; modelview[9] = 0; modelview[10] = 1;
+        modelview[0] = scale_x; modelview[1] = 0; modelview[2] = 0;
+        modelview[4] *= scale_y;modelview[5] *= scale_y;modelview[6] *= scale_y;
+        modelview[8] = 0; modelview[9] = 0; modelview[10] = scale;
     } else {
-        modelview[0] = 1; modelview[1] = 0; modelview[2] = 0;
-        modelview[4] = 0; modelview[5] = 1; modelview[6] = 0;
-        modelview[8] = 0; modelview[9] = 0; modelview[10] = 1;
+        modelview[0] = scale_x; modelview[1] = 0; modelview[2] = 0;
+        modelview[4] = 0; modelview[5] = scale_y; modelview[6] = 0;
+        modelview[8] = 0; modelview[9] = 0; modelview[10] = scale;
     }
 
     mat4_multiply(M_Projection, modelview, M_Xform);
@@ -868,6 +898,7 @@ static void clip_line_3d(vec4_t p0, vec4_t p1, int n) {
 void fx_line(vec3_t p0, vec3_t p1) {
     double q0[4], q1[4];
 
+    compute_transforms();
     transform_vertex(p0, q0);
     transform_vertex(p1, q1);
 
@@ -875,4 +906,10 @@ void fx_line(vec3_t p0, vec3_t p1) {
     q1[2] = 1.0/q1[2];
 
     clip_line_3d(q0, q1, 0);
+}
+
+void fx_line_d(double x0, double y0, double z0, double x1, double y1, double z1) {
+	double p0[] = {x0, y0, z0};
+	double p1[] = {x1, y1, z1};
+    fx_line(p0, p1);
 }
