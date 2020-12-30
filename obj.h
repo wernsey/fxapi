@@ -5,15 +5,22 @@
  *
  * References:
  * * https://en.wikipedia.org/wiki/Wavefront_.obj_file
- *
+ * * http://paulbourke.net/dataformats/obj/
+ * * http://paulbourke.net/dataformats/mtl/
  */
 
 typedef struct OBJ_DArray OBJ_DArray;
 
+typedef struct OBJ_FACE_VERTEX {
+	int v, vt, vn;
+} OBJ_FACE_VERTEX;
+
 typedef struct OBJ_FACE {
-    int v[3];
-    int vt[3];
-    int vn[3];
+
+	OBJ_FACE_VERTEX *fv;
+	int n;
+	int a;
+
     char *g;
     int s;
 } OBJ_FACE;
@@ -24,9 +31,11 @@ typedef struct OBJ_MESH {
 	OBJ_DArray *norms; /* Normals */
 	OBJ_DArray *texs;  /* Texture coordinates */
 
-	OBJ_DArray *faces; /* Faces */
+	OBJ_DArray *faces;  /* Faces */
 
     OBJ_DArray *groups;
+
+	char * name;
 
 	double xmin, xmax;
 	double ymin, ymax;
@@ -61,3 +70,5 @@ double *obj_norm(OBJ_MESH *m, int n);
 
 int obj_ntexs(OBJ_MESH *m);
 double *obj_tex(OBJ_MESH *m, int n);
+
+void obj_normalize_size(OBJ_MESH *obj);

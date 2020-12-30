@@ -79,15 +79,23 @@ static void *al_add(OBJ_DArray *al) {
 
 #define al_size(x) ((x)->n)
 
+static void free_face(void *p) {
+	OBJ_FACE *f = p;
+	free(f->fv);
+}
+
 OBJ_MESH *obj_create() {
 	OBJ_MESH *m = malloc(sizeof *m);
 	m->verts = al_create(3 * sizeof(double));
 	m->norms = al_create(3 * sizeof(double));
 	m->texs = al_create(3 * sizeof(double));
 	m->faces = al_create(sizeof(OBJ_FACE));
+	m->faces->dtor = free_face;
 
 	m->groups = al_create(sizeof(char *));
     m->groups->dtor = free;
+
+	m->name = NULL;
 
 	m->xmin = DBL_MAX; m->xmax = DBL_MIN;
 	m->ymin = DBL_MAX; m->ymax = DBL_MIN;
@@ -102,6 +110,8 @@ void obj_free(OBJ_MESH *m) {
 	al_free(m->texs);
 	al_free(m->faces);
 	al_free(m->groups);
+	if(m->name)
+		free(m->name);
 	free(m);
 }
 
@@ -149,13 +159,39 @@ static char *tokenize(char *str, const char *delim, char **save) {
 	if(!p) {
 		/* last token */
 		p = str;
-		while(str[0]) str++;
+		while(str[0] && str[0] != '\n') str++;
+		str[0] = '\0';
 		*save = str;
 		return p;
 	}
 	p[0] = '\0';
 	*save = ++p;
 	return str;
+}
+
+static char *read_line(char *o, size_t ol, FILE *f, OBJ_MESH *m, char **save) {
+	unsigned i = 0;
+	char *str = *save;
+	while(str[0] && strchr(" \t\r", str[0])) str++;
+	while(str[0] != '\n') {
+		if(str[0] == '\0') {
+			snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "unexpected end of file");
+			goto error;
+		} else if(str[0] == '\r')
+			continue;
+		if(i == ol - 1) {
+			snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "can't handle object names that long");
+			goto error;
+		}
+		o[i++] = *str++;
+	}
+	o[i++] = '\0';
+    *save = str;
+	return o;
+error:
+	o[0] = '\0';
+	*save = str;
+	return NULL;
 }
 
 OBJ_MESH *obj_load(const char *filename) {
@@ -168,6 +204,7 @@ OBJ_MESH *obj_load(const char *filename) {
 	m = obj_create();
 	char buffer[256], *str, *save, *word, *current_group = NULL;
     int smoothing_group = 0;
+
 	while(fgets(buffer, sizeof buffer, f)) {
 		str = buffer;
 		int i;
@@ -210,89 +247,141 @@ OBJ_MESH *obj_load(const char *filename) {
             /* Textures are flipped vertically */
             tex[1] = 1.0 - tex[1];
 		} else if(!strcmp(word, "f")) {
-			int i;
             OBJ_FACE *face = al_add(m->faces);
             face->g = current_group;
             face->s = smoothing_group;
-			/* Officially, faces can have more than 3
-				vertices, but I don't support that */
-			for(i = 0; i < 3; i++) {
+
+			face->n = 0;
+			face->a = 3;
+			face->fv = malloc(face->a * sizeof *face->fv);
+
+			for(;;) {
 				while(isspace(save[0])) save++;
-				int v = -1, vn = -1, vt = -1;
+				if(save[0] == '\0' || save[0] == '\n')
+					break;
+
+				int v = -1, vn = -1, vt = -1, a;
 				char *vertex = tokenize(NULL, " ", &save);
 				char *save2;
 				char *x = tokenize(vertex, "/", &save2);
-				v = atoi(x) - 1;
+				a = atoi(x);
+				if(a < 0) /* negative indices counts from end of array */
+					v = m->verts->n + a;
+				else if (a == 0) {
+					snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "vertex index is not allowed to be 0");
+                	goto error;
+				} else
+					v = a - 1;
 
-                /* The Teapot.obj sample I've been testing has normals,
-                 * but does not specify them explicitly in the faces,
-                 * hence the need for the following.
-                 * Is this official?
-                 * Would I need to do something similar for vt?
-                 */
-                //vn = v;
+                /* It seems you don't _have_ to specify the normal index, and can still have normals */
+				if(v < m->norms->n)
+                	vn = v;
 
 				x = tokenize(NULL, "/", &save2);
 				if(x) {
-					vt = x[0] ? atoi(x) - 1 : -1;
+					a = x[0] ? atoi(x) : 0;
+					if(a < 0)
+						vt = m->texs->n + a;
+					else if (a == 0) {
+						snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "texture index is not allowed to be 0");
+						goto error;
+					}
+					else
+						vt = a - 1;
 					x = tokenize(NULL, "/", &save2);
 					if(x) {
-						vn = atoi(x) - 1;
+						a = atoi(x);
+						if(a < 0)
+							vn = m->norms->n + a;
+						else if (a == 0) {
+							snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "normal index is not allowed to be 0");
+							goto error;
+						} else
+							vn = a - 1;
 					}
 				}
-                face->v[i] = v;
-                face->vt[i] = vt;
-                face->vn[i] = vn;
-				/* FIXME: Negative vertex indices are allowed by indexing from the end of the array. */
+
+				if(face->n == face->a) {
+					face->a <<= 1;
+					face->fv = realloc(face->fv, face->a * sizeof *face->fv);
+				}
+				OBJ_FACE_VERTEX *fp = &face->fv[face->n++];
+				fp->v = v;
+				fp->vt = vt;
+				fp->vn = vn;
 			}
         } else if(!strcmp(word, "g")) {
             char group[64];
-            unsigned i = 0;
-            while(isspace(save[0])) save++;
-            while(save[0] != '\n') {
-                if(save[0] == '\0') {
-                    snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "unexpected end of file");
-                    obj_free(m);
-					fclose(f);
-                    return NULL;
-                } else if(save[0] == '\r')
-                    continue;
-                if(i == sizeof group - 1) {
-                    snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "can't handle group names that long");
-                    obj_free(m);
-					fclose(f);
-                    return NULL;
-                }
-                group[i++] = *save++;
-            }
-            group[i++] = '\0';
+            if(!read_line(group, sizeof group, f, m, &save)) {
+				goto error;
+			}
             char **newgroupp = al_add(m->groups);
             *newgroupp = strdup(group);
             current_group = *newgroupp;
-
         } else if(!strcmp(word, "s")) {
             char * ss = tokenize(NULL, " ", &save);
             if(!ss) {
                 snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "unexpected end of file");
-                obj_free(m);
-				fclose(f);
-                return NULL;
+                goto error;
             }
+			/* `s off` will atoi() to 0 */
             smoothing_group = atoi(ss);
+        } else if(!strcmp(word, "o")) {
+            char o[64];
+        	if(!read_line(o, sizeof o, f, m, &save))
+				goto error;
+
+			if(m->name)
+				free(m->name);
+            m->name = strdup(o);
+		} else if(!strcmp(word, "mtllib")) {
+			/* There can be more than one material file per mtllib line,
+			which implies that you cannot have spaces in the filenames of
+			the .mtl files, yet blender will happily export them with
+			spaces for you, hence this `#if 0` */
+# if 0
+			for(;;) {
+				while(save[0] && strchr(" \t\r", save[0])) save++;
+				if(save[0] == '\0' || save[0] == '\n')
+					break;
+				char *mtllib = tokenize(NULL, " ", &save);
+				if(!mtllib)
+					break;
+				/* FIXME: actually load the mtllib */
+				//printf("mtllib: '%s'\n", mtllib);
+				(void)mtllib;
+			}
+#else
+			char mtllib[64];
+        	if(!read_line(mtllib, sizeof mtllib, f, m, &save))
+				goto error;
+			//printf("mtllib: '%s'\n", mtllib);
+			(void)mtllib;
+#endif
+		} else if(!strcmp(word, "usemtl")) {
+			char mtlname[64];
+        	if(!read_line(mtlname, sizeof mtlname, f, m, &save))
+				goto error;
+
+			if(mtlname[0]) {
+				/* TODO: do something with the material */
+			} else {
+				/* TODO: Docs says use a White material */
+			}
 		} else {
-			/* TODO: Add support for
-			 * - 'mtllib' - Materials
-			 * I don't intend to support the more advanced geometries
+			/* TODO: I don't intend to support the more advanced geometries
 			 * listed in the specification.
 			 */
 			snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "'%s' command is not supported", word);
-            obj_free(m);
-			fclose(f);
-            return NULL;
+            goto error;
 		}
 	}
 	fclose(f);
 	return m;
+error:
+	obj_free(m);
+	fclose(f);
+	return NULL;
 }
 
 int obj_save(OBJ_MESH *m, const char *filename) {
@@ -303,6 +392,10 @@ int obj_save(OBJ_MESH *m, const char *filename) {
 		return 0;
 	}
 	fprintf(f, "# %s\n", filename);
+
+	if(m->name)
+		fprintf(f, "o %s\n", m->name);
+
 	fprintf(f, "\n# %d Vertices: x y z\n", al_size(m->verts));
 	for(i = 0; i < al_size(m->verts); i++) {
 		double *vert = al_get(m->verts, i);
@@ -347,8 +440,9 @@ int obj_save(OBJ_MESH *m, const char *filename) {
             fprintf(f, "s %d\n", smoothing_group);
         }
 		fprintf(f, "f");
-		for(j = 0; j < 3; j++) {
-            int v = face->v[j], vt = face->vt[j], vn = face->vn[j];
+		for(j = 0; j < face->n; j++) {
+			OBJ_FACE_VERTEX *fp = &face->fv[j];
+            int v = fp->v, vt = fp->vt, vn = fp->vn;
 			if(vt >= 0) {
 				if(vn >= 0) {
 					fprintf(f, " %d/%d/%d", v+1, vt+1, vn+1);
@@ -370,6 +464,38 @@ int obj_save(OBJ_MESH *m, const char *filename) {
 	return 1;
 }
 
+void obj_normalize_size(OBJ_MESH *obj) {
+	double xdim = obj->xmax - obj->xmin;
+	double ydim = obj->ymax - obj->ymin;
+	double zdim = obj->zmax - obj->zmin;
+
+	double ratio;
+
+	if(xdim > ydim) {
+		if(xdim > zdim)
+			ratio = 1.0/xdim;
+		else
+			ratio = 1.0/zdim;
+	} else {
+		if(ydim > zdim)
+			ratio = 1.0/ydim;
+		else
+			ratio = 1.0/zdim;
+	}
+
+	int i;
+	for(i = 0; i < obj_nverts(obj); i++) {
+		double *v = obj_vert(obj, i);
+		v[0] *= ratio;
+		v[1] *= ratio;
+		v[2] *= ratio;
+	}
+
+	obj->xmax *= ratio; obj->xmin *= ratio;
+	obj->ymax *= ratio; obj->ymin *= ratio;
+	obj->zmax *= ratio; obj->zmin *= ratio;
+}
+
 #ifndef OBJ_NODRAW
 void obj_draw(OBJ_MESH *obj) {
     int i;
@@ -378,16 +504,17 @@ void obj_draw(OBJ_MESH *obj) {
 		int j;
 		OBJ_FACE *face = obj_face(obj, i);
 
-		fx_begin(FX_TRIANGLES);
-		for(j = 0; j < 3; j++) {
-			vec3_t v = obj_vert(obj, face->v[j]);
+		fx_begin(FX_TRIANGLE_FAN);
+		for(j = 0; j < face->n; j++) {
+			OBJ_FACE_VERTEX *fp = &face->fv[j];
+			vec3_t v = obj_vert(obj, fp->v);
 			fx_vertex_v3(v);
-			int ti = face->vt[j];
+			int ti = fp->vt;
 			if(ti >= 0) {
 				vec2_t t = obj_tex(obj, ti);
 				fx_texcoord(t[0], t[1]);
 			}
-			int ni = face->vn[j];
+			int ni = fp->vn;
 			if(ni >= 0) {
 				vec3_t n0 = obj_norm(obj, ni);
 				fx_normal_v3(n0);
@@ -408,6 +535,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         printf("OBJ loaded\n");
+        if(obj->name)
+			printf("%s\n", obj->name);
         if(argc > 2) {
             if(!obj_save(obj, argv[2])) {
                 fprintf(stderr, "error: unable to save %s: %s\n", argv[2], obj_last_error());

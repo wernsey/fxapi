@@ -514,7 +514,7 @@ int fx_end() {
         break;
         case FX_TRIANGLE_FAN:
         for(i = 2; i < NVerts; i++) {
-            tris += triangle(0, i, i - 1);
+            tris += triangle(i-1, i, 0);
         }
         break;
     }
