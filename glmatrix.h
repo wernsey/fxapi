@@ -910,6 +910,20 @@ mat4_t mat4_translate(mat4_t mat, vec3_t vec, mat4_t dest);
 mat4_t mat4_scale(mat4_t mat, vec3_t vec, mat4_t dest);
 
 /*
+ * mat4_scale_scalar
+ * Scales a matrix by the given scalar
+ *
+ * Params:
+ * mat - mat4_t to scale
+ * scalar - scalar specifying the scale for each axis
+ * dest - Optional, mat4_t receiving operation result. If NULL, result is written to mat
+ *
+ * Returns:
+ * dest if not NULL, mat otherwise
+ */
+mat4_t mat4_scale_scalar(mat4_t mat, numeric_t scalar, mat4_t dest);
+
+/*
  * mat4_rotate
  * Rotates a matrix by the given angle around the specified axis
  * If rotating around a primary axis (X,Y,Z) one of the specialized rotation functions should be used instead for performance
@@ -1233,6 +1247,25 @@ quat_t quat_toMat4(quat_t quat, mat4_t dest);
  * dest if not NULL, quat otherwise
  */
 quat_t quat_slerp(quat_t quat, quat_t quat2, numeric_t slerp, quat_t dest);
+
+/*
+ * quat_rotate
+ * Rotates a point around a quaternion by applying the formula
+ *
+ *    r = q.p.q*
+ *
+ * where q is the quaternion, q* is its conjugate, and p is the
+ * point to be rotated.
+ *
+ * Params:
+ * quat - quat_t, first quaternion
+ * p - vec3_t, the point to rotate
+ * dest - Optional, quat_t receiving operation result. If NULL, result is written to quat
+ *
+ * Returns:
+ * dest if not NULL, quat otherwise
+ */
+quat_t quat_rotate(quat_t quat, vec3_t p, quat_t dest);
 
 /*
  * quat_str
@@ -2214,6 +2247,42 @@ mat4_t mat4_scale(mat4_t mat, vec3_t vec, mat4_t dest) {
     return dest;
 }
 
+mat4_t mat4_scale_scalar(mat4_t mat, numeric_t scalar, mat4_t dest) {
+    if (!dest || mat == dest) {
+        mat[0] *= scalar;
+        mat[1] *= scalar;
+        mat[2] *= scalar;
+        mat[3] *= scalar;
+        mat[4] *= scalar;
+        mat[5] *= scalar;
+        mat[6] *= scalar;
+        mat[7] *= scalar;
+        mat[8] *= scalar;
+        mat[9] *= scalar;
+        mat[10] *= scalar;
+        mat[11] *= scalar;
+        return mat;
+    }
+
+    dest[0] = mat[0] * scalar;
+    dest[1] = mat[1] * scalar;
+    dest[2] = mat[2] * scalar;
+    dest[3] = mat[3] * scalar;
+    dest[4] = mat[4] * scalar;
+    dest[5] = mat[5] * scalar;
+    dest[6] = mat[6] * scalar;
+    dest[7] = mat[7] * scalar;
+    dest[8] = mat[8] * scalar;
+    dest[9] = mat[9] * scalar;
+    dest[10] = mat[10] * scalar;
+    dest[11] = mat[11] * scalar;
+    dest[12] = mat[12];
+    dest[13] = mat[13];
+    dest[14] = mat[14];
+    dest[15] = mat[15];
+    return dest;
+}
+
 mat4_t mat4_rotate(mat4_t mat, numeric_t angle, vec3_t axis, mat4_t dest) {
     numeric_t x = axis[0], y = axis[1], z = axis[2],
         len = sqrt(x * x + y * y + z * z),
@@ -2809,6 +2878,19 @@ quat_t quat_slerp(quat_t quat, quat_t quat2, numeric_t slerp, quat_t dest) {
     dest[1] = (quat[1] * ratioA + quat2[1] * ratioB);
     dest[2] = (quat[2] * ratioA + quat2[2] * ratioB);
     dest[3] = (quat[3] * ratioA + quat2[3] * ratioB);
+
+    return dest;
+}
+
+quat_t quat_rotate(quat_t q, vec3_t p, quat_t dest) {
+
+    if(!dest) {
+        dest = q;
+    }
+    numeric_t t[4] = {p[0], p[1], p[2], 0}, r[4];
+
+    quat_multiply(q, t, r);
+    quat_multiply(r, quat_conjugate(q, t), dest);
 
     return dest;
 }
