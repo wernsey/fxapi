@@ -43,8 +43,6 @@ typedef struct OBJ_MESH {
 
 } OBJ_MESH;
 
-const char *obj_last_error();
-
 OBJ_MESH *obj_create();
 
 void obj_free(OBJ_MESH *m);

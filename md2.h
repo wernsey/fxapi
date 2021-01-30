@@ -8,16 +8,16 @@ typedef struct md2_header
 	char ident[4];
 	int version;
 	int skin_w, skin_h;
-	
+
 	int framesize;  /* size of a single frame */
-	
-	int n_skins;    /* Number of skins */	
+
+	int n_skins;    /* Number of skins */
 	int n_xyz;      /* Number of vertices */
 	int n_st;		/* Number of texture coordinates */
 	int n_tri;		/* Number of triangles */
 	int n_glcmds;
 	int n_frames;
-	
+
 	int ofs_skins;
 	int ofs_st;
 	int ofs_tris;
@@ -50,28 +50,26 @@ typedef struct md2_frame_head {
 
 typedef struct md2_frame {
 	md2_frame_head head; /* header */
-	md2_frame_tri *tris; /* individual triangle positions */	
+	md2_frame_tri *tris; /* individual triangle positions */
 } md2_frame;
 #pragma pack(pop)
 
 typedef struct MD2_MESH {
-	md2_header header;	
+	md2_header header;
 	md2_skin_name *skin_names; /* May be NULL */
-	
+
 	md2_tex_coord *tex_coords;
-		
+
 	md2_tri *triangles;
-	
+
 	md2_frame *frames;
-	
-	int *glcmds;	
-	
+
+	int *glcmds;
+
 	float minx, maxx;
 	float miny, maxy;
 	float minz, maxz;
 } MD2_MESH;
-
-const char *md2_last_error();
 
 MD2_MESH *md2_load(const char *filename);
 

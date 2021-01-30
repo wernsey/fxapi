@@ -30,11 +30,6 @@
 #include "fx.h"
 #endif
 
-static char Obj_Err_Buf[256];
-const char *obj_last_error() {
-    return Obj_Err_Buf;
-}
-
 typedef struct OBJ_DArray {
     size_t esize;   /* sizeof the individual elements */
     unsigned int n; /* Number of elements in the listl allocated */
@@ -44,10 +39,10 @@ typedef struct OBJ_DArray {
 } OBJ_DArray;
 
 static OBJ_DArray *al_create(size_t esize) {
-	OBJ_DArray *al = malloc(sizeof *al);
+	OBJ_DArray *al = fx_malloc(sizeof *al);
 	al->esize = esize;
 	al->a = 8;
-	al->els = calloc(al->a, esize);
+	al->els = fx_calloc(al->a, esize);
 	al->n = 0;
     al->dtor = NULL;
 	return al;
@@ -71,7 +66,7 @@ static void al_free(OBJ_DArray *al) {
 static void *al_add(OBJ_DArray *al) {
 	if(al->n == al->a) {
 		al->a <<= 1;
-		al->els = realloc(al->els, al->a * al->esize);
+		al->els = fx_realloc(al->els, al->a * al->esize);
 	}
 	assert(al->n < al->a);
 	return al->els + (al->n++ * al->esize);
@@ -85,7 +80,7 @@ static void free_face(void *p) {
 }
 
 OBJ_MESH *obj_create() {
-	OBJ_MESH *m = malloc(sizeof *m);
+	OBJ_MESH *m = fx_malloc(sizeof *m);
 	m->verts = al_create(3 * sizeof(double));
 	m->norms = al_create(3 * sizeof(double));
 	m->texs = al_create(3 * sizeof(double));
@@ -175,12 +170,12 @@ static char *read_line(char *o, size_t ol, FILE *f, OBJ_MESH *m, char **save) {
 	while(str[0] && strchr(" \t\r", str[0])) str++;
 	while(str[0] != '\n') {
 		if(str[0] == '\0') {
-			snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "unexpected end of file");
+			fx_error("OBJ: unexpected end of file");
 			goto error;
 		} else if(str[0] == '\r')
 			continue;
 		if(i == ol - 1) {
-			snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "can't handle object names that long");
+			fx_error("OBJ: can't handle object names that long");
 			goto error;
 		}
 		o[i++] = *str++;
@@ -198,7 +193,7 @@ OBJ_MESH *obj_load(const char *filename) {
 	OBJ_MESH *m;
 	FILE *f = fopen(filename, "r");
 	if(!f) {
-        snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "couldn't open '%s': %s", filename, strerror(errno));
+        fx_error("OBJ: couldn't open '%s': %s", filename, strerror(errno));
 		return NULL;
 	}
 	m = obj_create();
@@ -253,7 +248,7 @@ OBJ_MESH *obj_load(const char *filename) {
 
 			face->n = 0;
 			face->a = 3;
-			face->fv = malloc(face->a * sizeof *face->fv);
+			face->fv = fx_malloc(face->a * sizeof *face->fv);
 
 			for(;;) {
 				while(isspace(save[0])) save++;
@@ -268,7 +263,7 @@ OBJ_MESH *obj_load(const char *filename) {
 				if(a < 0) /* negative indices counts from end of array */
 					v = m->verts->n + a;
 				else if (a == 0) {
-					snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "vertex index is not allowed to be 0");
+					fx_error("OBJ: vertex index is not allowed to be 0");
                 	goto error;
 				} else
 					v = a - 1;
@@ -283,7 +278,7 @@ OBJ_MESH *obj_load(const char *filename) {
 					if(a < 0)
 						vt = m->texs->n + a;
 					else if (a == 0) {
-						snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "texture index is not allowed to be 0");
+						fx_error("OBJ: texture index is not allowed to be 0");
 						goto error;
 					}
 					else
@@ -294,7 +289,7 @@ OBJ_MESH *obj_load(const char *filename) {
 						if(a < 0)
 							vn = m->norms->n + a;
 						else if (a == 0) {
-							snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "normal index is not allowed to be 0");
+							fx_error("OBJ: normal index is not allowed to be 0");
 							goto error;
 						} else
 							vn = a - 1;
@@ -303,7 +298,7 @@ OBJ_MESH *obj_load(const char *filename) {
 
 				if(face->n == face->a) {
 					face->a <<= 1;
-					face->fv = realloc(face->fv, face->a * sizeof *face->fv);
+					face->fv = fx_realloc(face->fv, face->a * sizeof *face->fv);
 				}
 				OBJ_FACE_VERTEX *fp = &face->fv[face->n++];
 				fp->v = v;
@@ -321,7 +316,7 @@ OBJ_MESH *obj_load(const char *filename) {
         } else if(!strcmp(word, "s")) {
             char * ss = tokenize(NULL, " ", &save);
             if(!ss) {
-                snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "unexpected end of file");
+                fx_error("OBJ: unexpected end of file");
                 goto error;
             }
 			/* `s off` will atoi() to 0 */
@@ -372,7 +367,7 @@ OBJ_MESH *obj_load(const char *filename) {
 			/* TODO: I don't intend to support the more advanced geometries
 			 * listed in the specification.
 			 */
-			snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "'%s' command is not supported", word);
+			fx_error("OBJ: '%s' command is not supported", word);
             goto error;
 		}
 	}
@@ -388,7 +383,7 @@ int obj_save(OBJ_MESH *m, const char *filename) {
 	int i;
 	FILE *f = fopen(filename, "w");
 	if(!f) {
-		snprintf(Obj_Err_Buf, sizeof Obj_Err_Buf, "Unable to create %s: %s", filename, strerror(errno));
+		fx_error("OBJ: Unable to create %s: %s", filename, strerror(errno));
 		return 0;
 	}
 	fprintf(f, "# %s\n", filename);
@@ -531,7 +526,7 @@ int main(int argc, char *argv[]) {
     if(argc > 1) {
         obj = obj_load(argv[1]);
         if(!obj) {
-            fprintf(stderr, "error: unable to load %s: %s\n", argv[1], obj_last_error());
+            fprintf(stderr, "error: unable to load %s\n", argv[1]);
             return 1;
         }
         printf("OBJ loaded\n");
@@ -539,7 +534,7 @@ int main(int argc, char *argv[]) {
 			printf("%s\n", obj->name);
         if(argc > 2) {
             if(!obj_save(obj, argv[2])) {
-                fprintf(stderr, "error: unable to save %s: %s\n", argv[2], obj_last_error());
+                fprintf(stderr, "error: unable to save %s\n", argv[2]);
                 return 1;
             }
             printf("OBJ saved\n");

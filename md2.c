@@ -47,11 +47,6 @@ struct intern_tex_coord {
 };
 #pragma pack(pop)
 
-static char MD2_Err_Buf[256];
-const char *md2_last_error() {
-    return MD2_Err_Buf;
-}
-
 MD2_MESH *md2_load(const char *filename) {
 	FILE *f;
 	MD2_MESH *m;
@@ -62,9 +57,9 @@ MD2_MESH *md2_load(const char *filename) {
 	if(!(f = fopen(filename, "rb")))
 		return NULL;
 
-	m = calloc(1, sizeof *m);
+	m = fx_calloc(1, sizeof *m);
 	if(fread(&m->header, sizeof m->header, 1, f) != 1) {
-		snprintf(MD2_Err_Buf, sizeof MD2_Err_Buf, "Unable to read header of %s", filename);
+		fx_error("MD2: Unable to read header of %s", filename);
 		free(m);
 		fclose(f);
 		return NULL;
@@ -93,24 +88,24 @@ MD2_MESH *md2_load(const char *filename) {
 #endif
 
 	if(strcmp(id_str, "IDP2")) {
-		snprintf(MD2_Err_Buf, sizeof MD2_Err_Buf, "%s is not MD2 (ID %s mismatch)", filename, id_str);
+		fx_error("MD2: %s is not MD2 (ID %s mismatch)", filename, id_str);
 		free(m);
 		fclose(f);
 		return NULL;
 	}
 
-	m->tex_coords = calloc(m->header.n_st, sizeof *m->tex_coords);
-	m->triangles = calloc(m->header.n_tri, sizeof *m->triangles);
-	m->glcmds = calloc(m->header.n_glcmds, sizeof *m->glcmds);
-	m->frames = calloc(m->header.n_frames, sizeof *m->frames);
-	m->skin_names = (m->header.n_skins > 0)?calloc(m->header.n_skins, sizeof *m->skin_names):NULL;
+	m->tex_coords = fx_calloc(m->header.n_st, sizeof *m->tex_coords);
+	m->triangles = fx_calloc(m->header.n_tri, sizeof *m->triangles);
+	m->glcmds = fx_calloc(m->header.n_glcmds, sizeof *m->glcmds);
+	m->frames = fx_calloc(m->header.n_frames, sizeof *m->frames);
+	m->skin_names = (m->header.n_skins > 0)?fx_calloc(m->header.n_skins, sizeof *m->skin_names):NULL;
 
 	if(m->header.n_skins > 0) {
 		/* Apparently, this is possible */
 		fseek(f, m->header.ofs_skins, SEEK_SET);
 		if(fread(m->skin_names, sizeof *m->skin_names, m->header.n_skins, f) != m->header.n_skins)
 		{
-			snprintf(MD2_Err_Buf, sizeof MD2_Err_Buf, "unable to read skin names from %s", filename);
+			fx_error("MD2: unable to read skin names from %s", filename);
 			md2_free(m);
 			fclose(f);
 			return NULL;
@@ -119,10 +114,10 @@ MD2_MESH *md2_load(const char *filename) {
 		m->skin_names = NULL;
 
 	/* Read the texture coordinates */
-	tex_coords = calloc(m->header.n_st, sizeof *tex_coords);
+	tex_coords = fx_calloc(m->header.n_st, sizeof *tex_coords);
 	fseek(f, m->header.ofs_st, SEEK_SET);
 	if(fread(tex_coords, sizeof *tex_coords, m->header.n_st, f) != m->header.n_st) {
-		snprintf(MD2_Err_Buf, sizeof MD2_Err_Buf, "unable to read texture coordinates from %s", filename);
+		fx_error("MD2: unable to read texture coordinates from %s", filename);
 		md2_free(m);
 		fclose(f);
 		return NULL;
@@ -137,7 +132,7 @@ MD2_MESH *md2_load(const char *filename) {
 	/* Triangles */
 	fseek(f, m->header.ofs_tris, SEEK_SET);
 	if(fread(m->triangles, sizeof *m->triangles, m->header.n_tri, f) != m->header.n_tri) {
-		snprintf(MD2_Err_Buf, sizeof MD2_Err_Buf, "unable to read triangles from %s", filename);
+		fx_error("MD2: unable to read triangles from %s", filename);
 		md2_free(m);
 		fclose(f);
 		return NULL;
@@ -149,14 +144,14 @@ MD2_MESH *md2_load(const char *filename) {
 	 * bytes, but it would complicate things later */
 	for(i = 0; i < m->header.n_frames; i++) {
 		if(fread(&m->frames[i].head, sizeof m->frames[i].head, 1, f) != 1) {
-			snprintf(MD2_Err_Buf, sizeof MD2_Err_Buf, "unable to read frame %d head from %s", i, filename);
+			fx_error("MD2: unable to read frame %d head from %s", i, filename);
 			md2_free(m);
 			fclose(f);
 			return NULL;
 		}
-		m->frames[i].tris = malloc(m->header.n_xyz * sizeof *m->frames[i].tris);
+		m->frames[i].tris = fx_malloc(m->header.n_xyz * sizeof *m->frames[i].tris);
 		if(fread(m->frames[i].tris, sizeof *m->frames[i].tris, m->header.n_xyz, f) != m->header.n_xyz) {
-			snprintf(MD2_Err_Buf, sizeof MD2_Err_Buf, "unable to read frame %d tris from %s", i, filename);
+			fx_error("MD2: unable to read frame %d tris from %s", i, filename);
 			md2_free(m);
 			fclose(f);
 			return NULL;
@@ -169,7 +164,7 @@ MD2_MESH *md2_load(const char *filename) {
 	/* GL Commands */
 	fseek(f, m->header.ofs_glcmds, SEEK_SET);
 	if(fread(m->glcmds, sizeof *m->glcmds, m->header.n_glcmds, f) != m->header.n_glcmds) {
-		snprintf(MD2_Err_Buf, sizeof MD2_Err_Buf, "unable to read GL commands from %s", filename);
+		fx_error("MD2: unable to read GL commands from %s", filename);
 		md2_free(m);
 		return NULL;
 	}
@@ -439,12 +434,14 @@ void md2_draw(MD2_MESH *m, double frame) {
 }
 
 void md2_draw_interpolate(MD2_MESH *m, int frame0, int frame1, double frac) {
-#if 1
 	assert(frame0 >= 0 && frame0 < m->header.n_frames);
 	assert(frame1 >= 0 && frame1 < m->header.n_frames);
+	assert(frac >= 0 && frac < 1.0);
+
 	md2_frame *fr0 = &m->frames[frame0];
 	md2_frame *fr1 = &m->frames[frame1];
 
+#if 0
 	int i, j;
 	for(i = 0; i < m->header.n_tri; i++) {
 
@@ -480,11 +477,6 @@ void md2_draw_interpolate(MD2_MESH *m, int frame0, int frame1, double frac) {
 		fx_end();
 	}
 #else
-	assert(frame0 >= 0 && frame0 < m->header.n_frames);
-	assert(frame1 >= 0 && frame1 < m->header.n_frames);
-	md2_frame *fr0 = &m->frames[frame0];
-	md2_frame *fr1 = &m->frames[frame1];
-
 	int *cmdp, cmd, i, nv, index;
 
 	cmdp = m->glcmds;
@@ -505,7 +497,6 @@ void md2_draw_interpolate(MD2_MESH *m, int frame0, int frame1, double frac) {
 
 			index = *cmdp++;
 
-			/* Swap y and z (MD2 does not use the same coordinate system as OpenGL) */
 			double v0[3];
 			v0[0] = fr0->tris[index].v[0] * fr0->head.scale[0] + fr0->head.translate[0];
 			v0[1] = fr0->tris[index].v[1] * fr0->head.scale[1] + fr0->head.translate[1];
@@ -516,7 +507,8 @@ void md2_draw_interpolate(MD2_MESH *m, int frame0, int frame1, double frac) {
 			v1[2] = fr1->tris[index].v[2] * fr1->head.scale[2] + fr1->head.translate[2];
 
 			vec3_lerp(v0, v1, frac, NULL);
-			fx_vertex(v0[0], v0[2], -v0[1]);
+			/* MD2 does not use the same coordinate system as OpenGL */
+			fx_vertex(v0[1], v0[2], -v0[0]);
 
             double *n0 = md2_get_normal(fr0->tris[index].normal_i);
             double *n1 = md2_get_normal(fr1->tris[index].normal_i);
@@ -536,10 +528,10 @@ int main(int argc, char *argv[]) {
     if(argc > 1) {
         md2 = md2_load(argv[1]);
         if(!md2) {
-            fprintf(stderr, "error: unable to load %s: %s\n", argv[1], md2_last_error());
+            fprintf(stderr, "error: unable to load %s\n", argv[1]);
             return 1;
         }
-        printf("OBJ loaded\n");
+        printf("MD2 loaded\n");
         md2_free(md2);
     }
     return 0;

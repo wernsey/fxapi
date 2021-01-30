@@ -7,6 +7,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <float.h>
+#include <stdarg.h>
 #include <assert.h>
 
 #define GL_MATRIX_IMPLEMENTATION
@@ -33,7 +34,7 @@ static int Backface = 0;
 static fx_mode Mode;
 static int Begun = 0;
 
-#define VARRAY_SIZE	256
+#define VARRAY_SIZE	512
 /* Vertex positions (transformed) */
 static double VArray[VARRAY_SIZE][4];
 static int NVerts = 0;
@@ -84,7 +85,7 @@ void fx_set_viewport(Bitmap *target) {
     V_Width = bm_width(Target);
     V_Height = bm_height(Target);
 
-    ZBuf = calloc(V_Width * V_Height, sizeof *ZBuf);
+    ZBuf = fx_calloc(V_Width * V_Height, sizeof *ZBuf);
 
 	mat4_identity(M_Model);
 	mat4_identity(M_View);
@@ -683,6 +684,14 @@ void fx_ctorgb(unsigned int c, double *r, double *g, double *b) {
     *b = (double)ib / 255.0;
 }
 
+void fx_set_target_color(unsigned int color) {
+    bm_set_color(Target, color);
+}
+
+unsigned int fx_get_target_color() {
+    return bm_get_color(Target);
+}
+
 /*
 To compute lighting on the billboard we subtract the position
 of the billboard from the camera position and normalize.
@@ -908,8 +917,129 @@ void fx_line(vec3_t p0, vec3_t p1) {
     clip_line_3d(q0, q1, 0);
 }
 
-void fx_line_d(double x0, double y0, double z0, double x1, double y1, double z1) {
-	double p0[] = {x0, y0, z0};
-	double p1[] = {x1, y1, z1};
+void fx_line_d(numeric_t x0, numeric_t y0, numeric_t z0, numeric_t x1, numeric_t y1, numeric_t z1) {
+	numeric_t p0[] = {x0, y0, z0};
+	numeric_t p1[] = {x1, y1, z1};
     fx_line(p0, p1);
 }
+
+
+static void point_3d(vec4_t p0) {
+
+    p0[0] = (p0[0]/p0[3] + 1) * bm_width(Target) / 2.0;
+    p0[1] = (-p0[1]/p0[3] + 1) * bm_height(Target) / 2.0;
+    p0[2] =  1.0/(p0[3] * p0[2]);
+
+    int x0 = p0[0];
+    int y0 = p0[1];
+    double z0 =  p0[2];
+
+    unsigned int color = bm_get_color(Target);
+    BmRect clip = bm_get_clip(Target);
+
+    if(x0 >= clip.x0 && x0 < clip.x1 && y0 >= clip.y0 && y0 < clip.y1 && z0 >= 0 && z0 < 1.0) {
+        /* DBL_EPSILON is there to give points preference. */
+        int w = bm_width(Target);
+        if(z0 < ZBuf[y0 * w + x0] + DBL_EPSILON) {
+            ZBuf[y0 * w + x0] = z0;
+            bm_set(Target, x0, y0, color);
+        }
+    }
+}
+
+static void clip_point_3d(vec4_t p0, int n) {
+    if(n == (sizeof ClipPlanes/sizeof ClipPlanes[0])) {
+       point_3d(p0);
+    } else {
+        double *P = ClipPlanes[n];
+        int i0 = inside_plane(p0, P);
+        if(!i0)
+            return;
+        clip_point_3d(p0, n + 1);
+    }
+}
+
+void fx_point(vec3_t p0) {
+    numeric_t q0[4];
+
+    compute_transforms();
+    transform_vertex(p0, q0);
+
+    q0[2] = 1.0/q0[2];
+
+    clip_point_3d(q0, 0);
+}
+
+void fx_point_d(numeric_t x0, numeric_t y0, numeric_t z0) {
+    numeric_t p0[] = {x0, y0, z0};
+    fx_point(p0);
+}
+
+void *fx_malloc(size_t size) {
+    void *p = malloc(size);
+    if(!p) {
+        fx_error("FX: out of memory");
+        abort();
+    }
+    return p;
+}
+
+void *fx_realloc(void* p, size_t size) {
+    p = realloc(p, size);
+    if(!p) {
+        fx_error("FX: out of memory");
+        abort();
+    }
+    return p;
+}
+
+void *fx_calloc(size_t nobj, size_t size) {
+    void *p = calloc(nobj, size);
+    if(!p) {
+        fx_error("FX: out of memory");
+        abort();
+    }
+    return p;
+}
+
+/* Default error handler just prints to `stderr` */
+static void _fx_error(const char *fmt, ...) {
+	va_list arg;
+	va_start(arg, fmt);
+	fputs("error: ", stderr);
+	vfprintf(stderr, fmt, arg);
+	fputc('\n', stderr);
+	va_end(arg);
+    fflush(stderr);
+}
+
+/* Reads an entire file into a dynamically allocated memory buffer.
+ * The returned buffer needs to be free()d afterwards
+ */
+static char *_fx_readfile(const char *fname) {
+	FILE *f;
+	long len,r;
+	char *str;
+
+	if(!(f = fopen(fname, "rb")))
+		return NULL;
+
+	fseek(f, 0, SEEK_END);
+	len = ftell(f);
+	rewind(f);
+
+	str = fx_malloc(len+2);
+	r = fread(str, 1, len, f);
+
+	if(r != len) {
+		free(str);
+		return NULL;
+	}
+
+	fclose(f);
+	str[len] = '\0';
+	return str;
+}
+
+void (*fx_error)(const char *fmt, ...) = _fx_error;
+char *(*fx_readfile)(const char *fname) = _fx_readfile;
