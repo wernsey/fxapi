@@ -234,6 +234,13 @@ int bm_pixel_count(Bitmap *b);
  */
 Bitmap *bm_load(const char *filename);
 
+/**
+ * #### `int bm_loadf(const char *fmt, ...)`
+ *
+ * Like `bm_load()`, but the filename is given as a `printf()`-style format string.
+ */
+Bitmap *bm_loadf(const char *fmt, ...);
+
 #ifdef EOF /* <stdio.h> included? http://stackoverflow.com/q/29117606/115589 */
 /**
  * #### `Bitmap *bm_load_fp(FILE *f)`
@@ -334,6 +341,13 @@ Bitmap *bm_from_stb(int w, int h, unsigned char *data);
  * Returns 1 on success, 0 on failure.
  */
 int bm_save(Bitmap *b, const char *fname);
+
+/**
+ * #### `int bm_savef(Bitmap *b, const char *fname, ...)`
+ *
+ * Like `bm_save()`, but the filename is given as a `printf()`-style format string.
+ */
+int bm_savef(Bitmap *b, const char *fname, ...);
 
 /**
  * ### Reference Counting Functions
@@ -622,6 +636,15 @@ unsigned int bm_byte_order(unsigned int col);
  * If `t` is 0 it returns `color1`. If `t` is 1.0 it returns `color2`.
  */
 unsigned int bm_lerp(unsigned int color1, unsigned int color2, double t);
+
+/**
+ * #### `unsigned int bm_graypixel(unsigned int c)`
+ *
+ * Converts a color to its grayscale value.
+ *
+ * See <https://en.wikipedia.org/wiki/Grayscale>
+ */
+unsigned int bm_graypixel(unsigned int c);
 
 /**
  * ### Blitting Functions
