@@ -573,12 +573,28 @@ void md5_draw(MD5_MODEL *m, double frame) {
                 numeric_t *vp = VertPositions + t->vert[k] * 3;
                 fx_vertex(vp[0], vp[2], vp[1]);
                 fx_texcoord(v->st[0], v->st[1]);
-                // I'm not convinced that the normals are correct.
                 fx_normal(v->normal[0], v->normal[2], v->normal[1]);
                 c++;
             }
        }
        fx_end();
+
+#if 0
+        fx_set_target_color(0x00FF00);
+        for(i = 0; i < me->numverts; i++) {
+
+            MD5_VERT *v = &me->verts[i];
+            numeric_t *finalPos = VertPositions + i * 3;
+
+            numeric_t normal[3];
+            vec3_scale(v->normal, 1.0, normal);
+            vec3_add(normal, finalPos, NULL);
+
+            fx_line_d(finalPos[0], finalPos[2], finalPos[1], normal[0], normal[2], normal[1]);
+        }
+#endif
+
+
     }
 
 }

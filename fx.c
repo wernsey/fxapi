@@ -458,6 +458,8 @@ static void compute_lighting(const vec3_t n0, vec3_t out) {
 
     mat4_multiplyVec3(M_NormalXform, n0, n);
 
+    vec3_normalize(n, NULL);
+
     double intensity = vec3_dot(n, vec3_negate(DiffuseDirection, m));
     if(intensity < 0) intensity = 0;
     vec3_scale(DiffuseColor, intensity, diffuse);
