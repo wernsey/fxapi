@@ -1,12 +1,12 @@
 CC=gcc
-CFLAGS=-c -Wall
+CFLAGS=-c -Wall -DUSESTB
 LDFLAGS=-lm
 
 # TODO: Remove this one things stabilize
 BUILD=debug
 
 # Add your source files here:
-SOURCES= bmp.c fx.c obj.c md2.c
+SOURCES= bmp.c fx.c obj.c md2.c md5.c bm_cache.c
 
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=app
@@ -43,11 +43,13 @@ $(LIB): $(OBJECTS)
 	ar rs $@ $^
 
 # Add header dependencies here
-main.o : main.c bmp.h fx.h glmatrix.h fx.h
-bmp.o : bmp.c bmp.h
-fx.o: fx.c fx.h bmp.h glmatrix.h fx.h
-obj.o : obj.c obj.h fx.h
-md2.o : md2.h md2.h fx.h
+bm_cache.o: bm_cache.c bmp.h fx.h bm_cache.h
+bmp.o: bmp.c bmp.h stb_image.h
+fx.o: fx.c glmatrix.h bmp.h fx.h
+main.o: main.c bmp.h fx.h glmatrix.h
+md2.o: md2.c md2.h fx.h
+md5.o: md5.c glmatrix.h md5.h bmp.h fx.h bm_cache.h
+obj.o: obj.c obj.h fx.h
 
 .PHONY : clean dist
 
