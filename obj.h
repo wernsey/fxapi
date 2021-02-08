@@ -22,8 +22,27 @@ typedef struct OBJ_FACE {
 	int a;
 
     char *g;
-    int s;
+
+	int s;
+
+	int m;
 } OBJ_FACE;
+
+typedef struct {
+	char *name;
+
+	numeric_t Ka[3];
+	numeric_t Kd[3];
+	numeric_t Ks[3];
+	numeric_t Ke[3];
+
+	float Ns;
+	float Ni;
+	float d;
+	int illum;
+
+	char *map_Kd;
+} OBJ_MTL;
 
 typedef struct OBJ_MESH {
 
@@ -41,6 +60,8 @@ typedef struct OBJ_MESH {
 	double ymin, ymax;
 	double zmin, zmax;
 
+	OBJ_DArray *materials;
+
 } OBJ_MESH;
 
 OBJ_MESH *obj_create();
@@ -49,7 +70,7 @@ void obj_free(OBJ_MESH *m);
 
 OBJ_MESH *obj_load(const char *filename);
 
-int obj_save(OBJ_MESH *m, const char *filename);
+int obj_save(OBJ_MESH *m, const char *objfile, const char *mtlfile);
 
 #ifndef OBJ_NODRAW
 void obj_draw(OBJ_MESH *obj);
@@ -70,3 +91,11 @@ int obj_ntexs(OBJ_MESH *m);
 double *obj_tex(OBJ_MESH *m, int n);
 
 void obj_normalize_size(OBJ_MESH *obj);
+
+OBJ_DArray *mtl_create();
+
+OBJ_DArray *mtl_load(const char *filename, OBJ_DArray *materials);
+
+void mtl_free(OBJ_DArray *materials);
+
+int mtl_save(OBJ_DArray *materials, const char *filename);

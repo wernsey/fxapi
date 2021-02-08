@@ -8,9 +8,21 @@
  *
  * Usage:
  *     # Compile:
- *     cc -o obj -DOBJ_TEST obj.c
+ *     gcc -D OBJ_TEST -Wall obj.c fx.c bmp.c -lm
+ *     gcc -D MTL_TEST -Wall obj.c fx.c bmp.c -lm
  *     # Run:
  *     ./obj teapot.obj out.obj
+ *
+ * Some tips for exporting from Blender:
+ *
+ * * Set the `Path Mode` to "Strip Path"
+ *   * this will strip the path from the textures.
+ *   * you will need to keep the texture in the same directory
+ *     as the OBJ, but I prefer it that way.
+ * * Set "Forward" to "-Z Forward"
+ * * Set "Up" to "Y Up"
+ *
+ *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,16 +31,30 @@
 #include <float.h>
 #include <errno.h>
 #include <assert.h>
+#include <unistd.h>
 
 #ifdef OBJ_TEST
 #  define OBJ_NODRAW
 #endif
 
+#include "fx.h"
 #include "obj.h"
 
-#ifndef OBJ_NODRAW
-#include "fx.h"
-#endif
+/* A default white material
+ * http://what-when-how.com/opengl-programming-guide/defining-material-properties-lighting-opengl-programming/
+ */
+static OBJ_MTL WhiteMtl = {
+	"White",
+	{0.2, 0.2, 0.2}, // Ka
+	{0.8, 0.8, 0.8}, // Kd
+	{0.0, 0.0, 0.0}, // Ks
+	{0.0, 0.0, 0.0}, // Ke
+	0.0,			 // Ns
+	0.0,			 // Ni
+	1.0,			 // d
+	0,				 // illum
+	NULL,			 // map_Kd
+};
 
 typedef struct OBJ_DArray {
     size_t esize;   /* sizeof the individual elements */
@@ -96,6 +122,11 @@ OBJ_MESH *obj_create() {
 	m->ymin = DBL_MAX; m->ymax = DBL_MIN;
 	m->zmin = DBL_MAX; m->zmax = DBL_MIN;
 
+	m->materials = mtl_create();
+	OBJ_MTL *white = al_add(m->materials);
+	memcpy(white, &WhiteMtl, sizeof *white);
+	white->name = strdup(white->name);
+
 	return m;
 }
 
@@ -107,6 +138,7 @@ void obj_free(OBJ_MESH *m) {
 	al_free(m->groups);
 	if(m->name)
 		free(m->name);
+	mtl_free(m->materials);
 	free(m);
 }
 
@@ -164,7 +196,7 @@ static char *tokenize(char *str, const char *delim, char **save) {
 	return str;
 }
 
-static char *read_line(char *o, size_t ol, FILE *f, OBJ_MESH *m, char **save) {
+static char *read_line(char *o, size_t ol, FILE *f, char **save) {
 	unsigned i = 0;
 	char *str = *save;
 	while(str[0] && strchr(" \t\r", str[0])) str++;
@@ -191,6 +223,20 @@ error:
 
 OBJ_MESH *obj_load(const char *filename) {
 	OBJ_MESH *m;
+
+	char savepath[256];
+	getcwd(savepath, sizeof savepath);
+
+	char filedir[256];
+	strncpy(filedir, filename, sizeof filedir);
+	char *delim = strrchr(filedir, '/');
+	if(delim) {
+		*delim = '\0';
+		filename = delim + 1;
+		//printf("changing to directory %s", filedir);
+		chdir(filedir);
+	}
+
 	FILE *f = fopen(filename, "r");
 	if(!f) {
         fx_error("OBJ: couldn't open '%s': %s", filename, strerror(errno));
@@ -199,6 +245,8 @@ OBJ_MESH *obj_load(const char *filename) {
 	m = obj_create();
 	char buffer[256], *str, *save, *word, *current_group = NULL;
     int smoothing_group = 0;
+
+	int current_mtl = 0;
 
 	while(fgets(buffer, sizeof buffer, f)) {
 		str = buffer;
@@ -245,6 +293,7 @@ OBJ_MESH *obj_load(const char *filename) {
             OBJ_FACE *face = al_add(m->faces);
             face->g = current_group;
             face->s = smoothing_group;
+			face->m = current_mtl;
 
 			face->n = 0;
 			face->a = 3;
@@ -307,7 +356,7 @@ OBJ_MESH *obj_load(const char *filename) {
 			}
         } else if(!strcmp(word, "g")) {
             char group[64];
-            if(!read_line(group, sizeof group, f, m, &save)) {
+            if(!read_line(group, sizeof group, f, &save)) {
 				goto error;
 			}
             char **newgroupp = al_add(m->groups);
@@ -323,7 +372,7 @@ OBJ_MESH *obj_load(const char *filename) {
             smoothing_group = atoi(ss);
         } else if(!strcmp(word, "o")) {
             char o[64];
-        	if(!read_line(o, sizeof o, f, m, &save))
+        	if(!read_line(o, sizeof o, f, &save))
 				goto error;
 
 			if(m->name)
@@ -332,7 +381,7 @@ OBJ_MESH *obj_load(const char *filename) {
 		} else if(!strcmp(word, "mtllib")) {
 			/* There can be more than one material file per mtllib line,
 			which implies that you cannot have spaces in the filenames of
-			the .mtl files, yet blender will happily export them with
+			the .mtl files, yet Blender will happily export them with
 			spaces for you, hence this `#if 0` */
 # if 0
 			for(;;) {
@@ -342,29 +391,42 @@ OBJ_MESH *obj_load(const char *filename) {
 				char *mtllib = tokenize(NULL, " ", &save);
 				if(!mtllib)
 					break;
-				/* FIXME: actually load the mtllib */
-				//printf("mtllib: '%s'\n", mtllib);
-				(void)mtllib;
+				if(!mtl_load(mtllib, m->materials)) {
+					fx_error("OBJ: unable to load mtllib %s", mtllib);
+				}
 			}
 #else
 			char mtllib[64];
-        	if(!read_line(mtllib, sizeof mtllib, f, m, &save))
+        	if(!read_line(mtllib, sizeof mtllib, f, &save))
 				goto error;
-			//printf("mtllib: '%s'\n", mtllib);
-			(void)mtllib;
+			if(!mtl_load(mtllib, m->materials)) {
+				fx_error("OBJ: unable to load mtllib %s", mtllib);
+				//goto error;
+			}
 #endif
 		} else if(!strcmp(word, "usemtl")) {
 			char mtlname[64];
-        	if(!read_line(mtlname, sizeof mtlname, f, m, &save))
+        	if(!read_line(mtlname, sizeof mtlname, f, &save))
 				goto error;
-
 			if(mtlname[0]) {
-				/* TODO: do something with the material */
+				int found = 0;
+				for(i = 0; i < al_size(m->materials); i++) {
+					OBJ_MTL *mtl = al_get(m->materials, i);
+					if(!strcmp(mtlname, mtl->name)) {
+						found = 1;
+						current_mtl = i;
+						break;
+					}
+				}
+				if(!found) {
+					fx_error("OBJ: material '%s' not found\n", mtlname);
+					current_mtl = 0;
+				}
 			} else {
-				/* TODO: Docs says use a White material */
+				current_mtl = 0;
 			}
 		} else {
-			/* TODO: I don't intend to support the more advanced geometries
+			/* NOTE: I don't intend to support the more advanced geometries
 			 * listed in the specification.
 			 */
 			fx_error("OBJ: '%s' command is not supported", word);
@@ -372,24 +434,32 @@ OBJ_MESH *obj_load(const char *filename) {
 		}
 	}
 	fclose(f);
+	chdir(savepath);
 	return m;
 error:
 	obj_free(m);
 	fclose(f);
+	chdir(savepath);
 	return NULL;
 }
 
-int obj_save(OBJ_MESH *m, const char *filename) {
+int obj_save(OBJ_MESH *m, const char *objfile, const char *mtlfile) {
 	int i;
-	FILE *f = fopen(filename, "w");
+	FILE *f = fopen(objfile, "w");
 	if(!f) {
-		fx_error("OBJ: Unable to create %s: %s", filename, strerror(errno));
+		fx_error("OBJ: Unable to create %s: %s", objfile, strerror(errno));
 		return 0;
 	}
-	fprintf(f, "# %s\n", filename);
+	fprintf(f, "# %s\n", objfile);
 
 	if(m->name)
 		fprintf(f, "o %s\n", m->name);
+
+	if(mtlfile) {
+		fprintf(f, "mtllib %s\n", mtlfile);
+		if(!mtl_save(m->materials, mtlfile))
+			fx_error("OBJ: Couldn't save MTL file '%s'", mtlfile);
+	}
 
 	fprintf(f, "\n# %d Vertices: x y z\n", al_size(m->verts));
 	for(i = 0; i < al_size(m->verts); i++) {
@@ -421,6 +491,7 @@ int obj_save(OBJ_MESH *m, const char *filename) {
 
     char *current_group = NULL;
     int smoothing_group = 0;
+    int material = 0;
 
 	fprintf(f, "\n# %d Faces: v1/[vt1]/[vn1] ...\n", al_size(m->faces));
 	for(i = 0; i < al_size(m->faces); i++) {
@@ -433,6 +504,11 @@ int obj_save(OBJ_MESH *m, const char *filename) {
         if(face->s != smoothing_group) {
             smoothing_group = face->s;
             fprintf(f, "s %d\n", smoothing_group);
+        }
+        if(face->m != material) {
+            material = face->m;
+			OBJ_MTL *mtl = al_get(m->materials, face->m);
+            fprintf(f, "usemtl %s\n", mtl->name);
         }
 		fprintf(f, "f");
 		for(j = 0; j < face->n; j++) {
@@ -491,13 +567,163 @@ void obj_normalize_size(OBJ_MESH *obj) {
 	obj->zmax *= ratio; obj->zmin *= ratio;
 }
 
+static void free_material(void *p) {
+	OBJ_MTL *m = p;
+	if(m->name)
+		free(m->name);
+	if(m->map_Kd)
+		free(m->map_Kd);
+}
+
+OBJ_DArray *mtl_create() {
+	OBJ_DArray *materials = al_create(sizeof(OBJ_MTL));
+	materials->dtor = free_material;
+	return materials;
+}
+
+OBJ_DArray *mtl_load(const char *filename, OBJ_DArray *materials) {
+	FILE *f = fopen(filename, "r");
+	if(!f) {
+		fx_error("MTL: couldn't open '%s': %s", filename, strerror(errno));
+		return NULL;
+	}
+
+	if(!materials)
+		materials = mtl_create();
+
+	char buffer[256], *str, *save, *word;
+
+	OBJ_MTL *material = NULL;
+
+	while(fgets(buffer, sizeof buffer, f)) {
+		str = buffer;
+		int i;
+		while(isspace(*str)) str++;
+		if(str[0] == '\0' || str[0] == '#')
+			continue;
+		word = tokenize(str, " \n", &save);
+		if(!strcmp(word, "newmtl")) {
+			char newmtl[64];
+        	if(!read_line(newmtl, sizeof newmtl, f, &save))
+				goto error;
+			material = al_add(materials);
+			material->name = strdup(newmtl);
+			material->map_Kd = NULL;
+		} else if(!strcmp(word, "map_Kd")) {
+			if(!material) continue;
+			char map_Kd[64];
+        	if(!read_line(map_Kd, sizeof map_Kd, f, &save))
+				goto error;
+			material->map_Kd = strdup(map_Kd);
+		} else if(!strcmp(word, "Ka")) {
+			if(!material) continue;
+			/* NOTE: `Ka spectral` and `Ka xyz` versions are unsupported.
+			Ditto for the other `Kx` commands.
+			*/
+			for(i = 0; i < 3; i++) {
+				while(isspace(save[0])) save++;
+				material->Ka[i] = atof(tokenize(NULL, " ", &save));
+			}
+		} else if(!strcmp(word, "Kd")) {
+			if(!material) continue;
+			for(i = 0; i < 3; i++) {
+				while(isspace(save[0])) save++;
+				material->Kd[i] = atof(tokenize(NULL, " ", &save));
+			}
+		} else if(!strcmp(word, "Ks")) {
+			if(!material) continue;
+			for(i = 0; i < 3; i++) {
+				while(isspace(save[0])) save++;
+				material->Ks[i] = atof(tokenize(NULL, " ", &save));
+			}
+		} else if(!strcmp(word, "Ke")) {
+			/* `Ke` seems to be a Blender specific thing */
+			if(!material) continue;
+			for(i = 0; i < 3; i++) {
+				while(isspace(save[0])) save++;
+				material->Ke[i] = atof(tokenize(NULL, " ", &save));
+			}
+		} else if(!strcmp(word, "Ns")) {
+			if(!material) continue;
+			while(isspace(save[0])) save++;
+			material->Ns = atof(tokenize(NULL, " ", &save));
+		} else if(!strcmp(word, "Ni")) {
+			if(!material) continue;
+			while(isspace(save[0])) save++;
+			material->Ni = atof(tokenize(NULL, " ", &save));
+		} else if(!strcmp(word, "d")) {
+			if(!material) continue;
+			while(isspace(save[0])) save++;
+			material->d = atof(tokenize(NULL, " ", &save));
+		} else if(!strcmp(word, "Tr")) {
+			if(!material) continue;
+			while(isspace(save[0])) save++;
+			material->d = 1.0 - atof(tokenize(NULL, " ", &save));
+		} else if(!strcmp(word, "illum")) {
+			if(!material) continue;
+			while(isspace(save[0])) save++;
+			material->illum = atof(tokenize(NULL, " ", &save));
+		} else {
+			fx_error("unsupported command '%s' in MTL", word);
+			// not going to error, just ignore
+		}
+	}
+	fclose(f);
+	return materials;
+error:
+	fclose(f);
+	mtl_free(materials);
+	return NULL;
+}
+
+void mtl_free(OBJ_DArray *materials) {
+	al_free(materials);
+}
+
+int mtl_save(OBJ_DArray *materials, const char *filename) {
+	int i;
+	FILE *f = fopen(filename, "w");
+	if(!f) {
+		fx_error("MTL: Unable to create %s: %s", filename, strerror(errno));
+		return 0;
+	}
+	fprintf(f, "# %s\n", filename);
+	fprintf(f, "# Material Count: %d\n\n", al_size(materials));
+
+	for(i = 0; i < al_size(materials); i++) {
+		OBJ_MTL *mtl = al_get(materials, i);
+		fprintf(f, "newmtl %s\n", mtl->name);
+		fprintf(f, "Ns %f\n", mtl->Ns);
+		fprintf(f, "Ka %f %f %f\n", mtl->Ka[0], mtl->Ka[1], mtl->Ka[2]);
+		fprintf(f, "Kd %f %f %f\n", mtl->Kd[0], mtl->Kd[1], mtl->Kd[2]);
+		fprintf(f, "Ks %f %f %f\n", mtl->Ks[0], mtl->Ks[1], mtl->Ks[2]);
+		fprintf(f, "Ke %f %f %f\n", mtl->Ke[0], mtl->Ke[1], mtl->Ke[2]);
+		fprintf(f, "Ni %f\n", mtl->Ni);
+		fprintf(f, "d %f\n", mtl->d);
+		fprintf(f, "illum %d\n", mtl->illum);
+		if(mtl->map_Kd)
+			fprintf(f, "map_Kd %s\n", mtl->map_Kd);
+	}
+
+	fclose(f);
+	return 1;
+}
+
 #ifndef OBJ_NODRAW
 void obj_draw(OBJ_MESH *obj) {
     int i;
 
+	int mat = -1;
+
     for(i = 0; i < obj_nfaces(obj); i++) {
 		int j;
 		OBJ_FACE *face = obj_face(obj, i);
+
+		if(face->m != mat) {
+			mat = face->m;
+			OBJ_MTL *mtl = al_get(obj->materials, mat);
+			fx_set_material(mtl->Ka, mtl->Kd, mtl->Ke);
+		}
 
 		fx_begin(FX_TRIANGLE_FAN);
 		for(j = 0; j < face->n; j++) {
@@ -517,6 +743,7 @@ void obj_draw(OBJ_MESH *obj) {
 		}
 		fx_end();
 	}
+	fx_reset_material();
 }
 #endif
 
@@ -526,21 +753,46 @@ int main(int argc, char *argv[]) {
     if(argc > 1) {
         obj = obj_load(argv[1]);
         if(!obj) {
-            fprintf(stderr, "error: unable to load %s\n", argv[1]);
+            fprintf(stderr, "error: unable to load OBJ %s\n", argv[1]);
             return 1;
         }
         printf("OBJ loaded\n");
         if(obj->name)
 			printf("%s\n", obj->name);
         if(argc > 2) {
-            if(!obj_save(obj, argv[2])) {
+			char *mtlfile = NULL;
+			if(argc > 3)
+				mtlfile = argv[3];
+            if(!obj_save(obj, argv[2], mtlfile)) {
                 fprintf(stderr, "error: unable to save %s\n", argv[2]);
                 return 1;
             }
-            printf("OBJ saved\n");
+            printf("OBJ saved to %s\n", argv[2]);
         }
         obj_free(obj);
     }
+}
+#endif
+
+#ifdef MTL_TEST
+int main(int argc, char *argv[]) {
+	if(argc > 1) {
+		OBJ_DArray *mtls;
+		mtls = mtl_load(argv[1]);
+		if(!mtls) {
+			fprintf(stderr, "error: unable to load MTL %s", argv[1]);
+			return 1;
+		}
+		printf("MTL loaded\n");
+		if(argc > 2) {
+            if(!mtl_save(mtls, argv[2])) {
+                fprintf(stderr, "error: unable to save MTL %s\n", argv[2]);
+                return 1;
+            }
+            printf("MTL saved\n");
+        }
+		mtl_free(mtls);
+	}
     return 0;
 }
 #endif
