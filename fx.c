@@ -1,6 +1,11 @@
 /*
  * https://github.com/ssloy/tinyrenderer/wiki/Lesson-0:-getting-started
  * https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation
+ *
+ *
+ * Future Ideas:
+ * * MIP Maps?
+ *   See https://github.com/thebeast33/cro_lib
  */
 
 #include <stdlib.h>
@@ -61,8 +66,16 @@ static double *ZBuf = NULL;
 
 static int Lighting = 0;
 static double AmbientColor[3] = {0.5, 0.5, 0.5};
+
+/* TODO: At the moment there's only the one directional light.
+There ought to be more, and I ought to add support for point lights. */
 static double DiffuseColor[3] = {0.5, 0.5, 0.5};
 static double DiffuseDirection[3] = {0, 1, 0};
+
+static int Material_Enabled = 0;
+static numeric_t Material_Ambient[3] = {0.2, 0.2, 0.2};
+static numeric_t Material_Diffuse[3] = {0.8, 0.8, 0.8};
+static numeric_t Material_Emissive[3] = {0.0, 0.0, 0.0};
 
 static int Fog_Enable = 0;
 static double Fog_Near = 0.5, Fog_Far = 1.0;
@@ -452,9 +465,13 @@ static int triangle(int v0i, int v1i, int v2i) {
                     color[0], color[1], color[2], 0);
 }
 
+/*
+Here's a nice reference:
+http://what-when-how.com/opengl-programming-guide/the-mathematics-of-lighting-opengl-programming/
+*/
 static void compute_lighting(const vec3_t n0, vec3_t out) {
-    double diffuse[3];
-    double n[3], m[3];
+    numeric_t ambient[3], diffuse[3];
+    numeric_t n[3], m[3];
 
     mat4_multiplyVec3(M_NormalXform, n0, n);
 
@@ -464,7 +481,14 @@ static void compute_lighting(const vec3_t n0, vec3_t out) {
     if(intensity < 0) intensity = 0;
     vec3_scale(DiffuseColor, intensity, diffuse);
 
-    vec3_add(diffuse, AmbientColor, out);
+    if(Material_Enabled) {
+        vec3_multiply(Material_Ambient, AmbientColor, ambient);
+        vec3_multiply(Material_Diffuse, diffuse, diffuse);
+        vec3_add(ambient, diffuse, out);
+        vec3_add(out, Material_Emissive, out);
+    } else {
+        vec3_add(diffuse, AmbientColor, out);
+    }
 
     vec3_clamp01(out);
 }
@@ -639,6 +663,22 @@ void fx_set_diffuse_direction(double x, double y, double z) {
     DiffuseDirection[1] = y;
     DiffuseDirection[2] = z;
     vec3_normalize(DiffuseDirection, NULL);
+}
+
+/* Materials are inspired by OpenGL's.
+Here are some links that may be useful
+http://math.hws.edu/graphicsbook/c4/s2.html
+http://what-when-how.com/opengl-programming-guide/defining-material-properties-lighting-opengl-programming/
+*/
+void fx_set_material(vec3_t ambient, vec3_t diffuse, vec3_t emissive) {
+    vec3_set(ambient, Material_Ambient);
+    vec3_set(diffuse, Material_Diffuse);
+    vec3_set(emissive, Material_Emissive);
+    Material_Enabled = 1;
+}
+
+void fx_reset_material() {
+    Material_Enabled = 0;
 }
 
 void fx_backface(int enabled) {

@@ -10,6 +10,7 @@ typedef numeric_t *vec2_t;
 typedef numeric_t *vec3_t;
 typedef numeric_t *mat4_t;
 #endif
+
 #ifndef BMP_H
 /* #include "bmp.h" */
 typedef struct Bitmap Bitmap;
@@ -50,6 +51,9 @@ void fx_lighting(int enabled);
 void fx_set_ambient(double r, double g, double b);
 void fx_set_diffuse_color(double r, double g, double b);
 void fx_set_diffuse_direction(double x, double y, double z);
+
+void fx_set_material(vec3_t ambient, vec3_t diffuse, vec3_t emissive);
+void fx_reset_material();
 
 void fx_backface(int enabled);
 
