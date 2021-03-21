@@ -77,8 +77,8 @@ static numeric_t Material_Ambient[3] = {0.2, 0.2, 0.2};
 static numeric_t Material_Diffuse[3] = {0.8, 0.8, 0.8};
 static numeric_t Material_Emissive[3] = {0.0, 0.0, 0.0};
 
-static int Fog_Enable = 0;
-static double Fog_Near = 0.5, Fog_Far = 1.0;
+static fg_fog_type Fog_Type = FX_FOG_NONE;
+static double Fog_Near = 0.5, Fog_Far = 1.0, Fog_Density = 0.05;
 static double Fog_Color[] = {1.0, 1.0, 1.0};
 
 #define MIN(a,b) ((a<b)?a:b)
@@ -129,7 +129,7 @@ void fx_cleanup() {
     Transparent = 0;
     Lighting = 0;
     Blend = 0;
-    Fog_Enable = 0;
+    Fog_Type = FX_FOG_NONE;
 }
 
 void fx_clear_zbuf() {
@@ -269,9 +269,11 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
                     if(Transparent && (color & 0x00FFFFFF) == trans_color)
                         continue;
 
-                    texel[0] = ((color >> 16) & 0xFF);
-                    texel[1] = ((color >> 8) & 0xFF);
-                    texel[2] = ((color >> 0) & 0xFF);
+                    texel[0] = (double)((color >> 16) & 0xFF)/ 255.0;
+                    texel[1] = (double)((color >> 8) & 0xFF) / 255.0;
+                    texel[2] = (double)((color >> 0) & 0xFF) / 255.0;
+                } else {
+                    vec3_set(default_rgb, texel);
                 }
 
                 if(lighting) {
@@ -283,14 +285,28 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
                     vec3_set(default_rgb, rgb);
                 }
 
-                if(Fog_Enable) {
-                    double fac = (z - Fog_Near)/(Fog_Far - Fog_Near);
-                    if(fac < 0) fac = 0;
-                    if(fac > 1) fac = 1;
-                    vec3_lerp(rgb, Fog_Color, fac, NULL);
+                vec3_multiply(rgb, texel, NULL);
+
+                // https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glFog.xml
+                if(Fog_Type) {
+                    double fac = 0;
+                    if(Fog_Type == FX_FOG_LINEAR) {
+                        fac = (z - Fog_Near)/(Fog_Far - Fog_Near);
+                    } else if(Fog_Type == FX_FOG_EXP) {
+                        fac = 1 - exp(-Fog_Density * z);
+                    } else if(Fog_Type == FX_FOG_EXP2) {
+                        fac = 1 - exp(-Fog_Density * Fog_Density * z * z);
+                    }
+                    if(fac > 0) {
+                        if(fac > 1) {
+                            vec3_set(Fog_Color, rgb);
+                        } else {
+                            vec3_lerp(rgb, Fog_Color, fac, NULL);
+                        }
+                    }
                 }
 
-                color = bm_rgb(rgb[0] * texel[0], rgb[1] * texel[1], rgb[2] * texel[2]);
+                color = bm_rgb(rgb[0] * 255.0, rgb[1] * 255.0, rgb[2] * 255.0);
 
                 if(Blend) {
                     unsigned int color2 = bm_get(Target, P[0], P[1]);
@@ -685,17 +701,18 @@ void fx_backface(int enabled) {
     Backface = enabled;
 }
 
-void fx_fog(int enabled) {
-    Fog_Enable = enabled;
+void fx_fog(fg_fog_type type) {
+    Fog_Type = type;
 }
 
-void fx_fog_params(double r, double g, double b, double near, double far) {
+void fx_fog_params(double r, double g, double b, double near, double far, double density) {
     Fog_Color[0] = r;
     Fog_Color[1] = g;
     Fog_Color[2] = b;
     vec3_clamp01(Fog_Color);
     Fog_Near = near;
     Fog_Far = far;
+    Fog_Density = density;
 }
 
 void fx_blend(int enabled) {
@@ -849,10 +866,10 @@ static void line_3d(vec4_t p0, vec4_t p1) {
 
     p0[0] = (p0[0]/p0[3] + 1) * bm_width(Target) / 2.0;
     p0[1] = (-p0[1]/p0[3] + 1) * bm_height(Target) / 2.0;
-    p0[2] =  1.0/(p0[3] * p0[2]);
+    p0[2] =  p0[2] / p0[3];
     p1[0] = (p1[0]/p1[3] + 1) * bm_width(Target) / 2.0;
     p1[1] = (-p1[1]/p1[3] + 1) * bm_height(Target) / 2.0;
-    p1[2] =  1.0/(p1[3] * p1[2]);
+    p1[2] =  p1[2] / p1[3];
 
     int x0 = p0[0];
     int y0 = p0[1];
@@ -887,11 +904,11 @@ static void line_3d(vec4_t p0, vec4_t p1) {
     unsigned int color = bm_get_color(Target);
     BmRect clip = bm_get_clip(Target);
 
+    int w = bm_width(Target);
     for(;;) {
         if(x0 >= clip.x0 && x0 < clip.x1 && y0 >= clip.y0 && y0 < clip.y1 && z0 >= 0 && z0 < 1.0) {
             /* DBL_EPSILON is there to give lines preference.
             Useful when using lines to draw triangle edges. */
-            int w = bm_width(Target);
             if(z0 < ZBuf[y0 * w + x0] + DBL_EPSILON) {
                 ZBuf[y0 * w + x0] = z0;
                 bm_set(Target, x0, y0, color);
@@ -927,20 +944,11 @@ static void clip_line_3d(vec4_t p0, vec4_t p1, int n) {
             if(!i1) {
                 return;
             }
-            double t = intersect(p1, p0, P);
-
-            p0[0] = (p0[0] - p1[0]) * t + p1[0];
-            p0[1] = (p0[1] - p1[1]) * t + p1[1];
-            p0[2] = (p0[2] - p1[2]) * t + p1[2];
-            p0[3] = (p0[3] - p1[3]) * t + p1[3];
-
+            double t = intersect(p0, p1, P);
+            vec4_lerp(p0, p1, t, p0);
         } else if(!i1) {
             double t = intersect(p0, p1, P);
-
-            p1[0] = (p1[0] - p0[0]) * t + p0[0];
-            p1[1] = (p1[1] - p0[1]) * t + p0[1];
-            p1[2] = (p1[2] - p0[2]) * t + p0[2];
-            p1[3] = (p1[3] - p0[3]) * t + p0[3];
+            vec4_lerp(p0, p1, t, p1);
         }
         clip_line_3d(p0, p1, n + 1);
     }
@@ -953,9 +961,6 @@ void fx_line(vec3_t p0, vec3_t p1) {
     transform_vertex(p0, q0);
     transform_vertex(p1, q1);
 
-    q0[2] = 1.0/q0[2];
-    q1[2] = 1.0/q1[2];
-
     clip_line_3d(q0, q1, 0);
 }
 
@@ -965,12 +970,11 @@ void fx_line_d(numeric_t x0, numeric_t y0, numeric_t z0, numeric_t x1, numeric_t
     fx_line(p0, p1);
 }
 
-
 static void point_3d(vec4_t p0) {
 
     p0[0] = (p0[0]/p0[3] + 1) * bm_width(Target) / 2.0;
     p0[1] = (-p0[1]/p0[3] + 1) * bm_height(Target) / 2.0;
-    p0[2] =  1.0/(p0[3] * p0[2]);
+    p0[2] =  p0[2] / p0[3];
 
     int x0 = p0[0];
     int y0 = p0[1];
@@ -980,8 +984,8 @@ static void point_3d(vec4_t p0) {
     BmRect clip = bm_get_clip(Target);
 
     if(x0 >= clip.x0 && x0 < clip.x1 && y0 >= clip.y0 && y0 < clip.y1 && z0 >= 0 && z0 < 1.0) {
-        /* DBL_EPSILON is there to give points preference. */
         int w = bm_width(Target);
+        /* DBL_EPSILON is there to give points preference. */
         if(z0 < ZBuf[y0 * w + x0] + DBL_EPSILON) {
             ZBuf[y0 * w + x0] = z0;
             bm_set(Target, x0, y0, color);
@@ -993,9 +997,7 @@ static void clip_point_3d(vec4_t p0, int n) {
     if(n == (sizeof ClipPlanes/sizeof ClipPlanes[0])) {
        point_3d(p0);
     } else {
-        double *P = ClipPlanes[n];
-        int i0 = inside_plane(p0, P);
-        if(!i0)
+        if(!inside_plane(p0, ClipPlanes[n]))
             return;
         clip_point_3d(p0, n + 1);
     }
@@ -1006,8 +1008,6 @@ void fx_point(vec3_t p0) {
 
     compute_transforms();
     transform_vertex(p0, q0);
-
-    q0[2] = 1.0/q0[2];
 
     clip_point_3d(q0, 0);
 }

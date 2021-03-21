@@ -18,6 +18,8 @@ typedef struct Bitmap Bitmap;
 
 typedef enum {FX_TRIANGLES, FX_TRIANGLE_STRIP, FX_TRIANGLE_FAN} fx_mode;
 
+typedef enum {FX_FOG_NONE = 0, FX_FOG_LINEAR, FX_FOG_EXP, FX_FOG_EXP2} fg_fog_type;
+
 void fx_set_viewport(Bitmap *target);
 
 void fx_cleanup();
@@ -61,8 +63,8 @@ void fx_blend(int enabled);
 
 void fx_texture_dither(int enabled);
 
-void fx_fog(int enabled);
-void fx_fog_params(double r, double g, double b, double near, double far);
+void fx_fog(fg_fog_type type);
+void fx_fog_params(double r, double g, double b, double near, double far, double density);
 
 void fx_set_pick(Bitmap *pick);
 
