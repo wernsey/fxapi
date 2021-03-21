@@ -6,13 +6,13 @@ It uses my [bitmap][] module as a framebuffer and for texture maps.
 
 The renderer uses Barycentric coordinates for texture mapping as in
 [tinyrenderer][], which is a bit slow. I was working on a scanline
-rasterizer at some point, but I had some trouble with the perspective 
+rasterizer at some point, but I had some trouble with the perspective
 correction, and didn't get around to finishing it.
 
 ## Links
 
  * Dmitry V. Sokolov's [tinyrenderer][] tutorial
- * The [www.scratchapixel.com][scratchapixel] tutorials 
+ * The [www.scratchapixel.com][scratchapixel] tutorials
  * The official home of `bmp.c` is here: <https://github.com/wernsey/bitmap>
  * The `/gl-matrix` code is originally from <https://github.com/coreh/gl-matrix.c>,
    but I've made some modifications in my fork: <https://github.com/wernsey/gl-matrix.c>
@@ -32,7 +32,19 @@ Other references
     * <http://tfc.duke.free.fr/coding/md2-specs-en.html>
     * <http://tfc.duke.free.fr/old/models/md2.htm>
     * <http://openglsamples.sourceforge.net/md2.html>
+ 1. MD5 files
+    * <http://tfc.duke.free.fr/coding/md5-specs-en.html>
+    * <https://www.3dgep.com/loading-and-animating-md5-models-with-opengl/>
+    * <https://www.braynzarsoft.net/viewtutorial/q16390-27-loading-an-md5-model>
+    * <https://lwjglgamedev.gitbooks.io/3d-game-development-with-lwjgl/content/chapter19/chapter19.html>
+
+In the future I might consider adding support for these file formats:
+
+* [STL](https://en.wikipedia.org/wiki/STL_(file_format))
+* [PLY](http://paulbourke.net/dataformats/ply/)
+* [OFF](https://en.wikipedia.org/wiki/OFF_(file_format))
+
 
 [bitmap]: https://github.com/wernsey/bitmap
-[tinyrenderer]: https://github.com/ssloy/tinyrenderer/wiki/Lesson-0:-getting-started
+[tinyrenderer]: https://github.com/ssloy/tinyrenderer/wiki/Lesson-0-getting-started
 [scratchapixel]: https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/perspective-correct-interpolation-vertex-attributes
