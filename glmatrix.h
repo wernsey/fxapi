@@ -57,7 +57,7 @@ extern "C" {
                               (GL_MATRIX_MINOR_VERSION << 8) | \
                               (GL_MATRIX_MICRO_VERSION))
 
-typedef float numeric_t;
+typedef double numeric_t;
 
 typedef numeric_t *vec2_t;
 typedef numeric_t *vec3_t;
