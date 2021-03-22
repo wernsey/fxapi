@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 	/* The fog effect is a simple linear fog with a color
 		and near/far parameters */
 	fx_fog(1);
-	fx_fog_params(0, 0, 0, 0.5, 1.0);
+	fx_fog_params(0, 0, 0, 0.5, 1.0, 1.0);
 
 	/* You can enable/disable backface drawing */
 	fx_backface(1);
