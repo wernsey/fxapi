@@ -57,7 +57,7 @@ extern "C" {
                               (GL_MATRIX_MINOR_VERSION << 8) | \
                               (GL_MATRIX_MICRO_VERSION))
 
-typedef double numeric_t;
+typedef float numeric_t;
 
 typedef numeric_t *vec2_t;
 typedef numeric_t *vec3_t;
@@ -95,6 +95,30 @@ vec2_t vec2_create(vec2_t vec);
  * dest
  */
 vec2_t vec2_set(vec2_t vec, vec2_t dest);
+
+/*
+ * vec2_zeroes
+ * Sets the value of a vec2_t to {0,0}
+ *
+ * Params:
+ * vec - vec2_t to set
+ *
+ * Returns:
+ * vec
+ */
+vec2_t vec2_zeroes(vec2_t vec);
+
+/*
+ * vec2_ones
+ * Sets the value of a vec2_t to {1,1}
+ *
+ * Params:
+ * vec - vec2_t to set
+ *
+ * Returns:
+ * vec
+ */
+vec2_t vec2_ones(vec2_t vec);
 
 /*
  * vec2_add
@@ -271,6 +295,30 @@ vec3_t vec3_create(vec3_t vec);
  * dest
  */
 vec3_t vec3_set(vec3_t vec, vec3_t dest);
+
+/*
+ * vec3_zeroes
+ * Sets the value of a vec3_t to {0,0,0}
+ *
+ * Params:
+ * vec - vec3_t to set
+ *
+ * Returns:
+ * vec
+ */
+vec3_t vec3_zeroes(vec3_t vec);
+
+/*
+ * vec3_ones
+ * Sets the value of a vec3_t to {1,1,1}
+ *
+ * Params:
+ * vec - vec3_t to set
+ *
+ * Returns:
+ * vec
+ */
+vec3_t vec3_ones(vec3_t vec);
 
 /*
  * vec3_add
@@ -494,6 +542,30 @@ vec4_t vec4_create(vec4_t vec);
  * dest
  */
 vec4_t vec4_set(vec4_t vec, vec4_t dest);
+
+/*
+ * vec4_zeroes
+ * Sets the value of a vec4_t to {0,0,0,0}
+ *
+ * Params:
+ * vec - vec4_t to set
+ *
+ * Returns:
+ * vec
+ */
+vec4_t vec4_zeroes(vec4_t vec);
+
+/*
+ * vec4_ones
+ * Sets the value of a vec4_t to {1,1,1,1}
+ *
+ * Params:
+ * vec - vec4_t to set
+ *
+ * Returns:
+ * vec
+ */
+vec4_t vec4_ones(vec4_t vec);
 
 /*
  * vec4_add
@@ -1001,7 +1073,7 @@ mat4_t mat4_frustum(numeric_t left, numeric_t right, numeric_t bottom, numeric_t
  * Generates a perspective projection matrix with the given bounds
  *
  * Params:
- * fovy - scalar, vertical field of view
+ * fovy - scalar, vertical field of view (in degrees)
  * aspect - scalar, aspect ratio. typically viewport width/height
  * near, far - scalar, near and far bounds of the frustum
  * dest - Optional, mat4_t frustum matrix will be written into
@@ -1307,6 +1379,18 @@ vec2_t vec2_set(vec2_t vec, vec2_t dest) {
     return dest;
 }
 
+vec2_t vec2_zeroes(vec2_t vec) {
+    vec[0] = 0;
+    vec[1] = 0;
+    return vec;
+}
+
+vec2_t vec2_ones(vec2_t vec) {
+    vec[0] = 1;
+    vec[1] = 1;
+    return vec;
+}
+
 vec2_t vec2_add(vec2_t vec, vec2_t vec2, vec2_t dest) {
     if (!dest || vec == dest) {
         vec[0] += vec2[0];
@@ -1437,6 +1521,20 @@ vec3_t vec3_set(vec3_t vec, vec3_t dest) {
     dest[2] = vec[2];
 
     return dest;
+}
+
+vec3_t vec3_zeroes(vec3_t vec) {
+    vec[0] = 0;
+    vec[1] = 0;
+    vec[2] = 0;
+    return vec;
+}
+
+vec3_t vec3_ones(vec3_t vec) {
+    vec[0] = 1;
+    vec[1] = 1;
+    vec[2] = 1;
+    return vec;
 }
 
 vec3_t vec3_add(vec3_t vec, vec3_t vec2, vec3_t dest) {
@@ -1637,6 +1735,22 @@ vec4_t vec4_set(vec4_t vec, vec4_t dest) {
     dest[2] = vec[2];
     dest[3] = vec[3];
     return dest;
+}
+
+vec4_t vec4_zeroes(vec4_t vec) {
+    vec[0] = 0;
+    vec[1] = 0;
+    vec[2] = 0;
+    vec[3] = 0;
+    return vec;
+}
+
+vec4_t vec4_ones(vec4_t vec) {
+    vec[0] = 1;
+    vec[1] = 1;
+    vec[2] = 1;
+    vec[3] = 1;
+    return vec;
 }
 
 vec4_t vec4_add(vec4_t vec, vec4_t vec2, vec4_t dest) {
