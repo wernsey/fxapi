@@ -45,6 +45,15 @@ In the future I might consider adding support for these file formats:
 * [OFF](https://en.wikipedia.org/wiki/OFF_(file_format))
 
 
+This particular branch now supports model-space normal maps; I actually want to support tangent space
+normal maps, but it might take a while before I can get there. Here are some links I'll save for later
+
+* https://learnopengl.com/Advanced-Lighting/Normal-Mapping
+* http://ogldev.atspace.co.uk/www/tutorial26/tutorial26.html
+* [Messing with Tangent Space](https://www.gamasutra.com/view/feature/129939/messing_with_tangent_space.php?print=1) gamasutra article
+* https://www.reddit.com/r/opengl/comments/3o3wn6/tangent_space_is_confusing/cvujbr7/
+* http://www.3dkingdoms.com/weekly/weekly.php?a=37
+
 [bitmap]: https://github.com/wernsey/bitmap
 [tinyrenderer]: https://github.com/ssloy/tinyrenderer/wiki/Lesson-0-getting-started
 [scratchapixel]: https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/perspective-correct-interpolation-vertex-attributes

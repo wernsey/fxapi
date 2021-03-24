@@ -54,6 +54,7 @@ static double CArray[VARRAY_SIZE][3];
 static int NCols = 0;
 
 static Bitmap *Texture = NULL;
+static Bitmap *NormalMap = NULL;
 
 static int TextureDither = 0;
 
@@ -116,6 +117,7 @@ void fx_cleanup() {
     Target = NULL;
     Pick = NULL;
     Texture = NULL;
+    NormalMap = NULL;
 
     V_Width = V_Height = 0;
 
@@ -194,7 +196,7 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
     if(ymin < clip.y0) ymin = clip.y0;
     if(ymax >= clip.y1) ymax = clip.y1 - 1;
 
-    int lighting = (Lighting && NNorms == NVerts) || (NCols == NVerts);
+    int vertex_lighting = !NormalMap && ((Lighting && NNorms == NVerts) || (NCols == NVerts));
     int texture = NTexs == NVerts && Texture;
 
     double texel[3];
@@ -227,7 +229,6 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
         fx_ctorgb(bm_get_color(Target), &texel[0], &texel[1], &texel[2]);
         vec3_scale(texel, 255, NULL);
     }
-    double default_rgb[] = {1,1,1};
 
     int P[2]; // x, y;
     for(P[1] = ymin; P[1]<=ymax; P[1]++) {
@@ -248,7 +249,7 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
             double z = v0[2] * bc_clip[0] + v1[2] * bc_clip[1] + v2[2] * bc_clip[2];
 
             if(ZBUF(P[0],P[1]) > z) {
-                double rgb[3];
+                double vert_rgb[3], frag_rgb[3];
                 unsigned int color;
 
                 if(texture) {
@@ -272,20 +273,47 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
                     texel[0] = (double)((color >> 16) & 0xFF)/ 255.0;
                     texel[1] = (double)((color >> 8) & 0xFF) / 255.0;
                     texel[2] = (double)((color >> 0) & 0xFF) / 255.0;
+
+                    if(NormalMap) {
+                        unsigned int normal_c = bm_get(NormalMap, u * tex_w + tex_x, v * tex_h + tex_y);
+                        unsigned char X, Y, Z;
+                        bm_get_rgb(normal_c, &X, &Y, &Z);
+
+                        double n[3], m[3];
+                        n[0] = (double)X / 255.0 - 0.5;
+                        n[1] = (double)Y / 255.0 - 0.5;
+                        n[2] = (double)Z / 255.0 - 0.5;
+
+                        mat4_multiplyVec3(M_NormalXform, n, NULL);
+                        vec3_normalize(n, NULL);
+
+                        double intensity = vec3_dot(n, vec3_negate(DiffuseDirection, m));
+                        if(intensity < 0) intensity = 0;
+
+                        vec3_scale(DiffuseColor, intensity, frag_rgb);
+
+                    } else {
+                        vec3_ones(frag_rgb);
+                    }
                 } else {
-                    vec3_set(default_rgb, texel);
+                    // TODO: if(NormalMap)?
+                    vec3_ones(frag_rgb);
                 }
 
-                if(lighting) {
-                    rgb[0] = c0[0] * bc_clip[0] + c1[0] * bc_clip[1] + c2[0] * bc_clip[2];
-                    rgb[1] = c0[1] * bc_clip[0] + c1[1] * bc_clip[1] + c2[1] * bc_clip[2];
-                    rgb[2] = c0[2] * bc_clip[0] + c1[2] * bc_clip[1] + c2[2] * bc_clip[2];
-                    vec3_clamp01(rgb);
+                if(vertex_lighting) {
+                    vert_rgb[0] = c0[0] * bc_clip[0] + c1[0] * bc_clip[1] + c2[0] * bc_clip[2];
+                    vert_rgb[1] = c0[1] * bc_clip[0] + c1[1] * bc_clip[1] + c2[1] * bc_clip[2];
+                    vert_rgb[2] = c0[2] * bc_clip[0] + c1[2] * bc_clip[1] + c2[2] * bc_clip[2];
+                    vec3_clamp01(vert_rgb);
                 } else {
-                    vec3_set(default_rgb, rgb);
+                    vec3_ones(vert_rgb);
                 }
 
-                vec3_multiply(rgb, texel, NULL);
+                /* Technically frag_rgb and vert_rgb can't both be set at the same time, for the moment.
+                I might do something in the future that cause them both to be used. */
+                vec3_multiply(frag_rgb, vert_rgb, NULL);
+
+                vec3_multiply(frag_rgb, texel, NULL);
 
                 // https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glFog.xml
                 if(Fog_Type) {
@@ -299,22 +327,20 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
                     }
                     if(fac > 0) {
                         if(fac > 1) {
-                            vec3_set(Fog_Color, rgb);
+                            vec3_set(Fog_Color, frag_rgb);
                         } else {
-                            vec3_lerp(rgb, Fog_Color, fac, NULL);
+                            vec3_lerp(frag_rgb, Fog_Color, fac, NULL);
                         }
                     }
                 }
 
-                color = bm_rgb(rgb[0] * 255.0, rgb[1] * 255.0, rgb[2] * 255.0);
+                color = bm_rgb(frag_rgb[0] * 255.0, frag_rgb[1] * 255.0, frag_rgb[2] * 255.0);
 
                 if(Blend) {
+                    // Cheap bit shifting trick to blend 50/50
                     unsigned int color2 = bm_get(Target, P[0], P[1]);
                     color = ((color >> 1) & 0x007F7F7F) + ((color2 >> 1) & 0x007F7F7F);
                 }
-
-                // color = 255 * (1.0 - z);
-                // color = bm_rgb(color,color,color);
 
                 bm_set(Target, P[0], P[1], color);
 
@@ -650,6 +676,10 @@ void fx_save_projection(mat4_t dest) {
 
 void fx_set_texture(Bitmap *texture) {
     Texture = texture;
+}
+
+void fx_set_normal_map(Bitmap *texture) {
+    NormalMap = texture;
 }
 
 void fx_transparent(int enabled) {
