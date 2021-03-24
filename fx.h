@@ -49,6 +49,8 @@ void fx_save_projection(mat4_t dest);
 void fx_set_texture(Bitmap *texture);
 void fx_transparent(int enabled);
 
+void fx_set_normal_map(Bitmap *texture);
+
 void fx_lighting(int enabled);
 void fx_set_ambient(double r, double g, double b);
 void fx_set_diffuse_color(double r, double g, double b);
@@ -89,8 +91,6 @@ void fx_line_d(numeric_t x0, numeric_t y0, numeric_t z0, numeric_t x1, numeric_t
 void fx_point(vec3_t p0);
 
 void fx_point_d(numeric_t x0, numeric_t y0, numeric_t z0);
-
-
 
 extern void (*fx_error)(const char *fmt, ...);
 extern char *(*fx_readfile)(const char *fname);
