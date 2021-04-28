@@ -172,12 +172,12 @@ Bitmap *bm_crop(Bitmap *b, int x, int y, int w, int h);
 Bitmap *bm_from_Xbm(int w, int h, unsigned char *data);
 
 /**
- * #### `Bitmap *bm_from_Xpm(char *xpm[])`
+ * #### `Bitmap *bm_from_Xpm(const char *xpm[])`
  *
  * Creates a `Bitmap` object from [X PixMap](https://en.wikipedia.org/wiki/X_PixMap)
  * data in a source file.
  */
-Bitmap *bm_from_Xpm(char *xpm[]);
+Bitmap *bm_from_Xpm(const char *xpm[]);
 
 /**
  * #### `int bm_width(Bitmap *b)`
@@ -281,20 +281,20 @@ Bitmap *bm_load_mem(const unsigned char *buffer, long len);
  */
 Bitmap *bm_load_base64(const char *base64);
 
-#if defined(USESDL) && defined(_SDL_H)
+#if defined(USESDL) && defined(SDL_h_)
 /**
  * #### `Bitmap *bm_load_rw(SDL_RWops *file)`
  *
  * Loads a bitmap from a SDL `SDL_RWops*` structure,
  * for use with the [SDL library](http://www.libsdl.org).
  *
- * This function is only available if the `USESDL` preprocessor macro
- * is defined, and `SDL.h` is included before `bmp.h`.
- *
  * BMP, GIF and PCX support is always enabled, while JPG and PNG support
  * depends on how the library was compiled.
  *
  * Returns `NULL` if the file could not be loaded.
+ *
+ * **Note** This function is only available if the `USESDL` preprocessor macro
+ * is defined, and `SDL.h` is included before `bmp.h`.
  */
 Bitmap *bm_load_rw(SDL_RWops *file);
 #endif
@@ -423,6 +423,18 @@ void bm_rebind(Bitmap *b, unsigned char *data);
  * calls `bm_free()`
  */
 void bm_unbind(Bitmap *b);
+
+#if defined(USESDL) && defined(SDL_h_)
+/**
+ * #### `SDL_Texture *bm_create_SDL_texture(Bitmap *b, SDL_Renderer *renderer)`
+ *
+ * Creates a
+ *
+ * **Note** This function is only available if the `USESDL` preprocessor macro
+ * is defined, and `SDL.h` is included before `bmp.h`.
+ */
+SDL_Texture *bm_create_SDL_texture(Bitmap *b, SDL_Renderer *renderer);
+#endif
 
 /**
  * ### Clipping and Buffer Manipulation Functions
@@ -1263,11 +1275,19 @@ void bm_set_error(const char *e);
  * TODO
  * ----
  *
+ * - [ ] [k-d trees][kdtree] have been suggested as a way to speed up nearest neighbour searches.
+ *       I'm thinking in particular in my color quantization code which is a bit naive at the moment.
  * - [ ] `bm_atoi()` does not parse `chucknorris` correctly.  \
  *       See <https://stackoverflow.com/a/8333464/115589>
  * - [ ] I'm regretting my decision to have the BmFont.width function not look at the
  *       actual character you want to draw, so `bm_text_width()` is broken if you
  *       aren't using a fixed width font.
+ * - [ ] I only recently learned of [Wuffs][wuffs]. It might be worth integrating it in the same way
+ *       I integrate `stb_image` for security sensitive applications.
+ *       ([HN link](https://news.ycombinator.com/item?id=26714831))
+ *
+ * [kdtree]: https://en.wikipedia.org/wiki/K-d_tree
+ * [wuffs]: https://github.com/google/wuffs
  *
  * References
  * ----------
