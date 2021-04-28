@@ -1,6 +1,10 @@
 #ifndef FX_H
 #define FX_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #ifndef GL_MATRIX_H
 /* #include "glmatrix.h" */
 typedef double numeric_t;  /* You need to be really sure
@@ -90,13 +94,15 @@ void fx_point(vec3_t p0);
 
 void fx_point_d(numeric_t x0, numeric_t y0, numeric_t z0);
 
-
-
 extern void (*fx_error)(const char *fmt, ...);
 extern char *(*fx_readfile)(const char *fname);
 
 void *fx_malloc(size_t size);
 void *fx_realloc(void* p, size_t size);
 void *fx_calloc(size_t nobj, size_t size);
+
+#if defined(__cplusplus)
+} /* extern "C" */
+#endif
 
 #endif
