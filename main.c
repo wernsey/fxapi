@@ -131,10 +131,12 @@ int main(int argc, char *argv[]) {
 	fx_end();
 #else
 
-	fx_lighting(1);
-	fx_set_diffuse_direction(-0.5, -1.0, -0.5);
-	fx_set_diffuse_color(1.0, 1, 1);
+	fx_all_lighting(1);
 	fx_set_ambient(0.5, 0.5, 0.5);
+
+	fx_light_enable(0);
+	fx_set_diffuse_direction(0, -0.5, -1.0, -0.5);
+	fx_set_diffuse_color(0, 1.0, 1, 1);
 
 	double normals[8][3];
 	int i;

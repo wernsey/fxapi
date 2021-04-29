@@ -53,10 +53,16 @@ void fx_save_projection(mat4_t dest);
 void fx_set_texture(Bitmap *texture);
 void fx_transparent(int enabled);
 
-void fx_lighting(int enabled);
+void fx_all_lighting(int enabled);
+
+void fx_light_enable(unsigned int index);
+
+void fx_light_disable(unsigned int index);
+
 void fx_set_ambient(double r, double g, double b);
-void fx_set_diffuse_color(double r, double g, double b);
-void fx_set_diffuse_direction(double x, double y, double z);
+
+void fx_set_diffuse_color(unsigned int index, double r, double g, double b);
+void fx_set_diffuse_direction(unsigned int index, double x, double y, double z);
 
 void fx_set_material(vec3_t ambient, vec3_t diffuse, vec3_t emissive);
 void fx_reset_material();

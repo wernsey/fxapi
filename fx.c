@@ -13,6 +13,7 @@
 #include <math.h>
 #include <float.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <assert.h>
 
 #define GL_MATRIX_IMPLEMENTATION
@@ -67,10 +68,15 @@ static double *ZBuf = NULL;
 static int Lighting = 0;
 static double AmbientColor[3] = {0.5, 0.5, 0.5};
 
-/* TODO: At the moment there's only the one directional light.
-There ought to be more, and I ought to add support for point lights. */
-static double DiffuseColor[3] = {0.5, 0.5, 0.5};
-static double DiffuseDirection[3] = {0, 1, 0};
+#define MAX_LIGHTS 32
+typedef struct {
+    double diffuse[3];
+    double direction[3];
+} Light;
+
+static Light Lights[MAX_LIGHTS];
+
+uint32_t LightEnabled = 0;
 
 static int Material_Enabled = 0;
 static numeric_t Material_Ambient[3] = {0.2, 0.2, 0.2};
@@ -265,7 +271,7 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
                     while(v >= 1.0) v -= 1.0;
                     while(v < 0.0) v += 1.0;
 
-                    color = bm_get(Texture, u * tex_w + tex_x, v * tex_h + tex_y);
+                    color = bm_get(Texture, floor(u * tex_w) + tex_x, floor(v * tex_h) + tex_y);
                     if(Transparent && (color & 0x00FFFFFF) == trans_color)
                         continue;
 
@@ -488,14 +494,26 @@ http://what-when-how.com/opengl-programming-guide/the-mathematics-of-lighting-op
 static void compute_lighting(const vec3_t n0, vec3_t out) {
     numeric_t ambient[3], diffuse[3];
     numeric_t n[3], m[3];
+    int i;
 
     mat4_multiplyVec3(M_NormalXform, n0, n);
 
     vec3_normalize(n, NULL);
 
-    double intensity = vec3_dot(n, vec3_negate(DiffuseDirection, m));
-    if(intensity < 0) intensity = 0;
-    vec3_scale(DiffuseColor, intensity, diffuse);
+    vec3_zeroes(diffuse);
+
+    assert(MAX_LIGHTS <= 32);
+    for(i = 0; i < MAX_LIGHTS; i++) {
+        if(!(LightEnabled & (1 << i)))
+            continue;
+        Light *light = &Lights[i];
+        double intensity = vec3_dot(n, vec3_negate(light->direction, m));
+
+        if(intensity < 0)
+            continue;
+
+        vec3_add(diffuse, vec3_scale(light->diffuse, intensity, m), NULL);
+    }
 
     if(Material_Enabled) {
         vec3_multiply(Material_Ambient, AmbientColor, ambient);
@@ -656,8 +674,18 @@ void fx_transparent(int enabled) {
     Transparent = enabled;
 }
 
-void fx_lighting(int enabled) {
+void fx_all_lighting(int enabled) {
     Lighting = enabled;
+}
+
+void fx_light_enable(unsigned int index) {
+    assert(index < MAX_LIGHTS);
+    LightEnabled |= (1 << index);
+}
+
+void fx_light_disable(unsigned int index) {
+    assert(index < MAX_LIGHTS);
+    LightEnabled &= ~(1 << index);
 }
 
 void fx_set_ambient(double r, double g, double b) {
@@ -667,18 +695,22 @@ void fx_set_ambient(double r, double g, double b) {
     vec3_clamp01(AmbientColor);
 }
 
-void fx_set_diffuse_color(double r, double g, double b) {
-    DiffuseColor[0] = r;
-    DiffuseColor[1] = g;
-    DiffuseColor[2] = b;
-    vec3_clamp01(DiffuseColor);
+void fx_set_diffuse_color(unsigned int index, double r, double g, double b) {
+    assert(index < MAX_LIGHTS);
+    Light *light = &Lights[index];
+    light->diffuse[0] = r;
+    light->diffuse[1] = g;
+    light->diffuse[2] = b;
+    vec3_clamp01(light->diffuse);
 }
 
-void fx_set_diffuse_direction(double x, double y, double z) {
-    DiffuseDirection[0] = x;
-    DiffuseDirection[1] = y;
-    DiffuseDirection[2] = z;
-    vec3_normalize(DiffuseDirection, NULL);
+void fx_set_diffuse_direction(unsigned int index, double x, double y, double z) {
+    assert(index < MAX_LIGHTS);
+    Light *light = &Lights[index];
+    light->direction[0] = x;
+    light->direction[1] = y;
+    light->direction[2] = z;
+    vec3_normalize(light->direction, NULL);
 }
 
 /* Materials are inspired by OpenGL's.
@@ -765,7 +797,7 @@ https://gamedev.stackexchange.com/a/138209/25926
 
 void fx_billboard(vec3_t pos, double scale, int flags) {
     double eye_pos[3];
-    vec3_negate(vec3_set(&M_View_Inv[12], eye_pos), NULL);
+    vec3_set(&M_View_Inv[12], eye_pos);
     fx_billboard_eye(pos, eye_pos, scale, flags);
 }
 
@@ -778,8 +810,6 @@ void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags) {
 
     mat4_identity(model);
     mat4_translate(model, pos, NULL);
-    //double sv[] = {scale, scale, scale};
-    //mat4_scale(model, sv, NULL);
     mat4_multiply(M_View, model, modelview);
 
     BmRect tclip = bm_get_clip(Texture);
@@ -818,40 +848,21 @@ void fx_billboard_eye(vec3_t pos, vec3_t eye, double scale, int flags) {
     int save_backface = Backface;
     Backface = 0;
 
-    double color[3] = {1.0, 1.0, 1.0};
-
-    /* Disable lighting temporarily.
-    We will calculate the lighting here, rather than
-    defer it to `triangle()` because the normal vector
-    works differently */
-    int save_light = Lighting;
-    Lighting = 0;
-    if(save_light) {
-        double n0[3], e[3];
-        assert(eye);
-        vec3_negate(eye, e);
-        vec3_subtract(pos, e, n0);
-        vec3_normalize(n0, NULL);
-
-        double intensity = vec3_dot(n0, DiffuseDirection);
-        if(intensity < 0) intensity = 0;
-        vec3_scale(DiffuseColor, intensity, color);
-        vec3_add(color, AmbientColor, NULL);
-        vec3_clamp01(color);
-    }
+    numeric_t n0[3];
+    vec3_subtract(eye, pos, n0);
+    vec3_normalize(n0, NULL);
 
     Xform_dirty = 0; // Hack to prevent us from recomputing the transform
     fx_begin(FX_TRIANGLE_STRIP);
-    fx_vertex_v3(v[0]); fx_texcoord(t[0][0], t[0][1]); fx_color_v3(color);
-    fx_vertex_v3(v[1]); fx_texcoord(t[1][0], t[1][1]); fx_color_v3(color);
-    fx_vertex_v3(v[2]); fx_texcoord(t[2][0], t[2][1]); fx_color_v3(color);
-    fx_vertex_v3(v[3]); fx_texcoord(t[3][0], t[3][1]); fx_color_v3(color);
+    fx_vertex_v3(v[0]); fx_texcoord(t[0][0], t[0][1]); fx_normal_v3(n0);
+    fx_vertex_v3(v[1]); fx_texcoord(t[1][0], t[1][1]); fx_normal_v3(n0);
+    fx_vertex_v3(v[2]); fx_texcoord(t[2][0], t[2][1]); fx_normal_v3(n0);
+    fx_vertex_v3(v[3]); fx_texcoord(t[3][0], t[3][1]); fx_normal_v3(n0);
     fx_end();
 
     fx_set_model(save_model);
     fx_set_view(save_view);
     Backface = save_backface;
-    Lighting = save_light;
 }
 
 static void transform_vertex(vec3_t in, vec4_t out) {
