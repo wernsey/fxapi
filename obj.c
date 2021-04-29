@@ -76,11 +76,11 @@ static OBJ_DArray *al_create(size_t esize) {
 
 static void *al_get(OBJ_DArray *al, unsigned int i) {
 	assert(i >= 0 && i < al->n);
-	return al->els + (i * al->esize);
+	return al->els + i * al->esize;
 }
 
 static void al_free(OBJ_DArray *al) {
-    if(al->dtor) {
+	if(al->dtor) {
         int i;
         for(i = 0; i < al->n; i++)
             al->dtor(al_get(al, i));
@@ -107,9 +107,9 @@ static void free_face(void *p) {
 
 OBJ_MESH *obj_create() {
 	OBJ_MESH *m = fx_malloc(sizeof *m);
-	m->verts = al_create(3 * sizeof(double));
-	m->norms = al_create(3 * sizeof(double));
-	m->texs = al_create(3 * sizeof(double));
+	m->verts = al_create(3 * sizeof(numeric_t));
+	m->norms = al_create(3 * sizeof(numeric_t));
+	m->texs = al_create(3 * sizeof(numeric_t));
 	m->faces = al_create(sizeof(OBJ_FACE));
 	m->faces->dtor = free_face;
 
@@ -151,30 +151,114 @@ OBJ_FACE *obj_face(OBJ_MESH *m, int n) {
     return al_get(m->faces, n);
 }
 
+int obj_new_face(OBJ_MESH *m) {
+	int n = al_size(m->faces);
+	OBJ_FACE *f = al_add(m->faces);
+	f->a = 4;
+	f->fv = fx_calloc(f->a, sizeof *f->fv);
+	f->n = 0;
+	f->m = 0;
+	f->s = 0;
+	f->g = NULL;
+	return n;
+}
+
+int obj_face_add_vertex(OBJ_FACE *face, int v, int vt, int vn) {
+	if(face->n == face->a) {
+		face->a <<= 1;
+		face->fv = fx_realloc(face->fv, face->a * sizeof *face->fv);
+	}
+	int n = face->n;
+	OBJ_FACE_VERTEX *fp = &face->fv[face->n++];
+	fp->v = v;
+	fp->vt = vt;
+	fp->vn = vn;
+	return n;
+}
+
 int obj_nverts(OBJ_MESH *m) {
     return m->verts->n;
 }
 
-double *obj_vert(OBJ_MESH *m, int n) {
+vec3_t obj_vert(OBJ_MESH *m, int n) {
     assert(n < m->verts->n);
     return al_get(m->verts, n);
+}
+
+int obj_new_vert(OBJ_MESH *m, numeric_t x, numeric_t y, numeric_t z) {
+	int n = al_size(m->verts);
+	vec3_t o = al_add(m->verts);
+	o[0] = x;
+	o[1] = y;
+	o[2] = z;
+	return n;
+}
+
+int obj_vert_at(OBJ_MESH *m, numeric_t x, numeric_t y, numeric_t z) {
+	int i, n = al_size(m->verts);
+	for(i = 0; i < n; i++) {
+		vec3_t v = al_get(m->verts, i);
+		/* I know about floating point comparisons, but this is meant for
+		generated geometry, so I should be okay */
+		if(v[0] == x && v[1] == y && v[2] == z)
+			return i;
+	}
+	return obj_new_vert(m, x, y, z);
 }
 
 int obj_norms(OBJ_MESH *m) {
     return m->norms->n;
 }
-double *obj_norm(OBJ_MESH *m, int n) {
+vec3_t obj_norm(OBJ_MESH *m, int n) {
     assert(n < m->norms->n);
     return al_get(m->norms, n);
+}
+
+int obj_new_norm(OBJ_MESH *m, numeric_t x, numeric_t y, numeric_t z) {
+	int n = al_size(m->norms);
+	vec3_t o = al_add(m->norms);
+	o[0] = x;
+	o[1] = y;
+	o[2] = z;
+	return n;
+}
+
+int obj_norm_at(OBJ_MESH *m, numeric_t x, numeric_t y, numeric_t z) {
+	int i, n = al_size(m->norms);
+	for(i = 0; i < n; i++) {
+		vec3_t v = al_get(m->norms, i);
+		if(v[0] == x && v[1] == y && v[2] == z)
+			return i;
+	}
+	return obj_new_norm(m, x, y, z);
 }
 
 int obj_ntexs(OBJ_MESH *m) {
     return m->texs->n;
 }
 
-double *obj_tex(OBJ_MESH *m, int n) {
+vec3_t obj_tex(OBJ_MESH *m, int n) {
     assert(n < m->texs->n);
     return al_get(m->texs, n);
+}
+
+int obj_new_tex(OBJ_MESH *m, numeric_t u, numeric_t v) {
+	int n = al_size(m->texs);
+	vec3_t o = al_add(m->texs);
+	o[0] = u;
+	o[1] = v;
+	o[2] = 0;
+	return n;
+}
+
+int obj_tex_at(OBJ_MESH *m, numeric_t u, numeric_t v) {
+	int i, n = al_size(m->texs);
+	for(i = 0; i < n; i++) {
+		vec3_t t = al_get(m->texs, i);
+		if(t[0] == u && t[1] == v)
+			return i;
+	}
+	return obj_new_tex(m, u, v);
 }
 
 static char *tokenize(char *str, const char *delim, char **save) {
@@ -344,15 +428,7 @@ OBJ_MESH *obj_load(const char *filename) {
 							vn = a - 1;
 					}
 				}
-
-				if(face->n == face->a) {
-					face->a <<= 1;
-					face->fv = fx_realloc(face->fv, face->a * sizeof *face->fv);
-				}
-				OBJ_FACE_VERTEX *fp = &face->fv[face->n++];
-				fp->v = v;
-				fp->vt = vt;
-				fp->vn = vn;
+				obj_face_add_vertex(face, v, vt, vn);
 			}
         } else if(!strcmp(word, "g")) {
             char group[64];
@@ -521,7 +597,7 @@ int obj_save(OBJ_MESH *m, const char *objfile, const char *mtlfile) {
 					fprintf(f, " %d/%d", v+1, vt+1);
 				}
 			} else {
-				if(vn > 0) {
+				if(vn >= 0) {
 					fprintf(f, " %d//%d", v+1, vn+1);
 				} else {
 					fprintf(f, " %d", v+1);
@@ -711,6 +787,9 @@ int mtl_save(OBJ_DArray *materials, const char *filename) {
 
 #ifndef OBJ_NODRAW
 void obj_draw(OBJ_MESH *obj) {
+	if(!obj)
+		return;
+
     int i;
 
 	int mat = -1;

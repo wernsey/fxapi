@@ -81,14 +81,34 @@ int obj_nfaces(OBJ_MESH *m);
 /* gets the `n`th face of mesh `m` */
 OBJ_FACE *obj_face(OBJ_MESH *m, int n);
 
+int obj_new_face(OBJ_MESH *m);
+
+int obj_face_add_vertex(OBJ_FACE *face, int v, int vt, int vn);
+
 int obj_nverts(OBJ_MESH *m);
-double *obj_vert(OBJ_MESH *m, int n);
+
+vec3_t obj_vert(OBJ_MESH *m, int n);
+
+int obj_new_vert(OBJ_MESH *m, numeric_t x, numeric_t y, numeric_t z);
+
+/* gets the vertex at <x,y,z>, creates it if it doesn't exist */
+int obj_vert_at(OBJ_MESH *m, numeric_t x, numeric_t y, numeric_t z);
 
 int obj_norms(OBJ_MESH *m);
-double *obj_norm(OBJ_MESH *m, int n);
+
+vec3_t obj_norm(OBJ_MESH *m, int n);
+
+int obj_new_norm(OBJ_MESH *m, numeric_t x, numeric_t y, numeric_t z);
+
+int obj_norm_at(OBJ_MESH *m, numeric_t x, numeric_t y, numeric_t z);
 
 int obj_ntexs(OBJ_MESH *m);
-double *obj_tex(OBJ_MESH *m, int n);
+
+vec3_t obj_tex(OBJ_MESH *m, int n);
+
+int obj_new_tex(OBJ_MESH *m, numeric_t u, numeric_t v);
+
+int obj_tex_at(OBJ_MESH *m, numeric_t u, numeric_t v);
 
 void obj_normalize_size(OBJ_MESH *obj);
 
