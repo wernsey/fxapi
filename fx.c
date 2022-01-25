@@ -40,7 +40,7 @@ static int Backface = 0;
 static fx_mode Mode;
 static int Begun = 0;
 
-#define VARRAY_SIZE	512
+#define VARRAY_SIZE	4096
 /* Vertex positions (transformed) */
 static double VArray[VARRAY_SIZE][4];
 static int NVerts = 0;
