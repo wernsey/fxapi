@@ -6,7 +6,7 @@ LDFLAGS=-lm
 BUILD=debug
 
 # Add your source files here:
-SOURCES= bmp.c fx.c obj.c md2.c md5.c bm_cache.c
+SOURCES= bmp.c fx.c obj.c md2.c md5.c mdl.c bm_cache.c
 
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=app

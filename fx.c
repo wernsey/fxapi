@@ -114,6 +114,11 @@ void fx_set_viewport(Bitmap *target) {
 	mat4_perspective(60.0, ratio, 0.1, 10.0, M_Projection);
 }
 
+void fx_make_projection(numeric_t fovy, numeric_t near, numeric_t far) {
+	double ratio = (double)V_Width / V_Height;
+	mat4_perspective(fovy, ratio, near, far, M_Projection);
+}
+
 void fx_cleanup() {
     assert(ZBuf);
     free(ZBuf);
@@ -143,6 +148,19 @@ void fx_clear_zbuf() {
     assert(ZBuf);
     for(i = 0; i < V_Width * V_Height; i++)
         ZBuf[i] = 1.0;
+}
+
+void fx_draw_zbuf(Bitmap *dest) {
+    int x, y;
+    assert(bm_width(dest) == V_Width);
+    assert(bm_height(dest) == V_Height);
+    for(y = 0; y < V_Height; y++) {
+        for(x = 0; x < V_Width; x++) {
+            int v = (int)((1.0 - ZBUF(x,y)) * 255.0);
+            unsigned int c = bm_rgb(v,v,v);
+            bm_set(dest, x, y, c);
+        }
+    }
 }
 
 static void barycentric(vec3_t a, vec3_t b, vec3_t c, int P[2], vec3_t result) {
@@ -232,6 +250,8 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
     } else {
         fx_ctorgb(bm_get_color(Target), &texel[0], &texel[1], &texel[2]);
         vec3_scale(texel, 255, NULL);
+        trans_color = 0xFF000000; /* won't match anything in case `Transparent` is true */
+        tex_x = tex_y = tex_w = tex_h = 0; /* Not actually used, just silence a compiler warning */
     }
     double default_rgb[] = {1,1,1};
 
@@ -371,7 +391,7 @@ static int clip_to_plane(vec4_t v0, vec4_t v1, vec4_t v2, vec2_t t0, vec2_t t1, 
     vec2_t tp[3];
     vec3_t cp[3];
 
-    if(n >= (sizeof ClipPlanes) / (sizeof ClipPlanes[0])) {
+    if(n >= (int)((sizeof ClipPlanes) / (sizeof ClipPlanes[0]))) {
         return basic_triangle(v0, v1, v2, t0, t1, t2, c0, c1, c2);
     }
     P = ClipPlanes[n];

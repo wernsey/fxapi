@@ -26,9 +26,13 @@ typedef enum {FX_FOG_NONE = 0, FX_FOG_LINEAR, FX_FOG_EXP, FX_FOG_EXP2} fg_fog_ty
 
 void fx_set_viewport(Bitmap *target);
 
+void fx_make_projection(numeric_t fovy, numeric_t near, numeric_t far);
+
 void fx_cleanup();
 
 void fx_clear_zbuf();
+
+void fx_draw_zbuf(Bitmap *dest);
 
 void fx_begin(fx_mode mode);
 int fx_end();
