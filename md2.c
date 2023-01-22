@@ -17,15 +17,16 @@
 
 #ifdef MD2_TEST
 #  define MD2_NODRAW
+#  ifndef MD2_VERBOSE
+#    define MD2_VERBOSE 1
+#  endif
 #endif
 
 #ifndef MD2_VERBOSE
 #define MD2_VERBOSE 0
 #endif
 
-#ifndef MD2_NODRAW
 #include "fx.h"
-#endif
 
 #define POST_PROCESS /* see md2_postprocess() for details */
 

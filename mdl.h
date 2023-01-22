@@ -46,19 +46,39 @@ typedef struct mdl_simpleframe {
 	char name[16];
 	mdl_vertex *verts;
 } mdl_simpleframe;
+
+typedef struct mdl_frame {
+	int32_t type;
+	int32_t num;
+	mdl_vertex bboxmin;
+	mdl_vertex bboxmax;
+	float *times;
+	mdl_simpleframe *frames;
+} mdl_frame;
+
 #pragma pack(pop)
 
 typedef struct MDL_MESH {
 	mdl_header header;
 	
 	int num_textures;
-	float *times;
+	float *tex_times;
 	Bitmap **textures;
 	
 	mdl_texcoord *tex_coords;
 	mdl_triangle *triangles;
-	mdl_simpleframe *frames;
+	mdl_frame *frames;
+	
+	int total_frames;
+	mdl_simpleframe **sframes;
+	float *times;
+	
 } MDL_MESH;
+
+extern uint8_t mdl_quake_palette[];
+extern uint8_t mdl_hexen2_palette[];
+
+void mdl_set_palette(uint8_t *pal);
 
 MDL_MESH *mdl_load(const char *filename);
 
