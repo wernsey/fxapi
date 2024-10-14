@@ -197,7 +197,7 @@ static int basic_triangle(vec4_t vp0, vec4_t vp1, vec4_t vp2, vec2_t t0, vec2_t 
 
     /* Backface culling: */
     if(!Backface) {
-        double P[3], Q[3], N[3];;
+        double P[3], Q[3], N[3];
         vec3_subtract(v1, v0, P);
         vec3_subtract(v2, v0, Q);
         vec3_cross(P, Q, N);
@@ -606,7 +606,7 @@ int fx_end() {
 int fx_vertex(double x, double y, double z) {
     assert(NVerts < VARRAY_SIZE && "You need to increase VARRAY_SIZE");
     assert(Begun && "`fx_vertex()` must be called between `fx_begin()` and `fx_end()`");
-    if(NVerts > VARRAY_SIZE || !Begun)
+    if(NVerts >= VARRAY_SIZE || !Begun)
         return 0;
     vec4_t V = VArray[NVerts++];
     V[0] = x;
@@ -620,7 +620,7 @@ int fx_vertex(double x, double y, double z) {
 int fx_texcoord(double u, double v) {
     assert(NTexs < VARRAY_SIZE && "You need to increase VARRAY_SIZE");
     assert(Begun && "`fx_texcoord()` must be called between `fx_begin()` and `fx_end()`");
-    if(NTexs > VARRAY_SIZE || !Begun)
+    if(NTexs >= VARRAY_SIZE || !Begun)
         return 0;
     vec2_t T = TArray[NTexs++];
     T[0] = u;
@@ -631,7 +631,7 @@ int fx_texcoord(double u, double v) {
 int fx_normal(double x, double y, double z) {
     assert(NNorms < VARRAY_SIZE && "You need to increase VARRAY_SIZE");
     assert(Begun && "`fx_normal()` must be called between `fx_begin()` and `fx_end()`");
-    if(NNorms > VARRAY_SIZE || !Begun)
+    if(NNorms >= VARRAY_SIZE || !Begun)
         return 0;
     vec3_t V = NArray[NNorms++];
     V[0] = x;
@@ -643,7 +643,7 @@ int fx_normal(double x, double y, double z) {
 int fx_color(double r, double g, double b) {
     assert(NCols < VARRAY_SIZE && "You need to increase VARRAY_SIZE");
     assert(Begun && "`fx_color()` must be called between `fx_begin()` and `fx_end()`");
-    if(NCols > VARRAY_SIZE || !Begun)
+    if(NCols >= VARRAY_SIZE || !Begun)
         return 0;
     vec3_t C = CArray[NCols++];
     C[0] = r;
