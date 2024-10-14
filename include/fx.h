@@ -16,7 +16,7 @@ typedef numeric_t *mat4_t;
 #endif
 
 #ifndef BMP_H
-/* #include "bmp.h" */
+/* #include "bmph.h" */
 typedef struct Bitmap Bitmap;
 #endif
 

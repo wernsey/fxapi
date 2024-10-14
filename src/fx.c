@@ -19,7 +19,9 @@
 #define GL_MATRIX_IMPLEMENTATION
 #include "glmatrix.h"
 
-#include "bmp.h"
+/* I really need to kill the dependency on bmph.h at some point... */
+#define BMPH_IMPLEMENTATION
+#include "bmph.h"
 
 #include "fx.h"
 
@@ -87,8 +89,12 @@ static fg_fog_type Fog_Type = FX_FOG_NONE;
 static double Fog_Near = 0.5, Fog_Far = 1.0, Fog_Density = 0.05;
 static double Fog_Color[] = {1.0, 1.0, 1.0};
 
-#define MIN(a,b) ((a<b)?a:b)
-#define MAX(a,b) ((a>b)?a:b)
+#ifndef MIN
+#  define MIN(a,b) ((a<b)?a:b)
+#endif
+#ifndef MAX
+#  define MAX(a,b) ((a>b)?a:b)
+#endif
 
 static vec3_t vec3_clamp01(vec3_t v) {
     v[0] = v[0] > 1 ? 1 : (v[0] < 0 ? 0 : v[0]);

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bmp.h"
+#include "bmph.h"
 #include "fx.h"
 #include "bm_cache.h"
 

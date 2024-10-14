@@ -4,7 +4,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include "bmp.h"
+#include "bmph.h"
 #include "fx.h"
 #include "glmatrix.h"
 

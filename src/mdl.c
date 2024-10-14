@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "bmp.h"
+#include "bmph.h"
 #include "mdl.h"
 
 #ifdef MDL_TEST

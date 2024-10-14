@@ -30,7 +30,7 @@
 #endif
 
 #ifndef MD5_NODRAW
-#  include "bmp.h"
+#  include "bmph.h"
 #  include "fx.h"
 #  include "bm_cache.h"
 #endif

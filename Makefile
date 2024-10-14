@@ -1,15 +1,15 @@
 CC=gcc
-CFLAGS=-c -Wall -DUSESTB
+CFLAGS=-c -Wall -DUSESTB -I./include -I./extra
 LDFLAGS=-lm
 
 # TODO: Remove this one things stabilize
 BUILD=debug
 
-# Add your source files here:
-SOURCES= bmp.c fx.c obj.c md2.c md5.c mdl.c bm_cache.c
+SRC_DIR := src
+OBJ_DIR := obj
 
 OBJECTS=$(SOURCES:.c=.o)
-EXECUTABLE=app
+TEST1=test1/app
 LIB=libfx.a
 
 ifeq ($(BUILD),debug)
@@ -23,45 +23,65 @@ LDFLAGS += -s
 endif
 
 ifeq ($(OS),Windows_NT)
-  EXECUTABLE:=$(EXECUTABLE).exe
+  TEST1:=$(TEST1).exe
 endif
 
-all: $(EXECUTABLE)
+SRC := $(wildcard $(SRC_DIR)/*.c)
+OBJ=$(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+
+all: $(TEST1) $(LIB)
 
 lib: $(LIB)
 
 debug:
-	make BUILD=debug
+	$(MAKE) BUILD=debug
 
-$(EXECUTABLE): main.o $(LIB)
-	$(CC) $^ $(LDFLAGS) -o $@
+$(TEST1): test1/main.o $(LIB)
+	@echo $@
+	@$(CC) $^ $(LDFLAGS) -o $@
 
-.c.o:
-	$(CC) $(CFLAGS) $< -o $@
+$(LIB): $(OBJ)
+	@echo $@
+	@ar rsc $@ $^
 
-$(LIB): $(OBJECTS)
-	ar rs $@ $^
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	@echo $@
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+test1/%.o: test1/%.c
+	@echo $@
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR):
+	@echo $@
+	@mkdir -p $@
 
 # Add header dependencies here
-bm_cache.o: bm_cache.c bmp.h fx.h bm_cache.h
-bmp.o: bmp.c bmp.h stb_image.h
-fx.o: fx.c glmatrix.h bmp.h fx.h
-main.o: main.c bmp.h fx.h glmatrix.h
-md2.o: md2.c md2.h fx.h
-md5.o: md5.c glmatrix.h md5.h bmp.h fx.h bm_cache.h
-obj.o: obj.c obj.h fx.h
+
+$(OBJ_DIR)/bm_cache.o: src/bm_cache.c extra/bmph.h include/fx.h include/bm_cache.h
+$(OBJ_DIR)/fx.o: src/fx.c extra/glmatrix.h extra/bmph.h include/fx.h
+$(OBJ_DIR)/md2.o: src/md2.c include/md2.h include/fx.h
+$(OBJ_DIR)/md5.o: src/md5.c extra/glmatrix.h include/md5.h extra/bmph.h include/fx.h \
+ include/bm_cache.h
+$(OBJ_DIR)/mdl.o: src/mdl.c extra/bmph.h include/mdl.h include/fx.h
+$(OBJ_DIR)/obj.o: src/obj.c include/fx.h include/obj.h
+$(OBJ_DIR)/shapes.o: src/shapes.c include/fx.h include/shapes.h extra/par_shapes.h
+test1/main.o: test1/main.c extra/bmph.h include/fx.h extra/glmatrix.h
 
 .PHONY : clean dist
 
 dist: dist.zip
 dist.zip: clean
-	zip -r $@ *
+	@zip -r $@ *
 
-clean: sweep
-	-rm -f $(LIB)
-	-rm -f $(EXECUTABLE)
+deps:
+	@$(CC) -MM -I ./include -I ./extra $(SRC) |  sed 's/\(.*\.o:\)/$$(OBJ_DIR)\/\1/'
+	@$(CC) -MM -I ./include -I ./extra test1/*.c |  sed 's/\(.*\.o:\)/test1\/\1/'
 
-sweep:
-	-rm -f *.o ./gdi/*.o gl-matrix/*.o
-	-rm -f out.gif pick.gif
-	-rm -f dist.zip
+clean:
+	@echo Cleaning...
+	@-rm -f $(LIB)
+	@-rm -rf $(OBJ_DIR) $(WEB_DIR)
+	@-rm -f $(TEST1) test1/*.o
+	@-rm -f out.gif pick.gif
+	@-rm -f dist.zip
