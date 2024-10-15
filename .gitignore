@@ -9,6 +9,7 @@ app
 .vscode
 
 mdl-test/mdl/*
+md2-test/md2/*
 
 # Output files of the test program
 out.gif

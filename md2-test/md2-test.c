@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include <assert.h>
@@ -11,35 +10,41 @@
 #include "glmatrix.h"
 #include "fx.h"
 
-#include "mdl.h"
+#include "md2.h"
 
 #define FENSTER_HEADER
 #include "fenster.h"
 
-//static Bitmap *screen = NULL;
+#ifndef M_PI
+/* VSCode has trouble with this... */
+#  define M_PI 3.14159
+#endif
+
+static Bitmap *tex = NULL;
 static Bitmap *pick_buffer = NULL;
 
-MDL_MESH *mdl = NULL;
+MD2_MESH *md2 = NULL;
 
 int init_thing(int argc, char *argv[]) {
 
 	fx_error = error;
 
-	if(argc > 1) {
-		/* You need to set the palette before loading the model */
-		if(argc > 2 && !strcmp(argv[2], "hexen2")) {
-			info("using hexen2 palette");
-			mdl_set_palette(mdl_hexen2_palette);
-		}
-		mdl = mdl_load(argv[1]);
-	} else {
-		error("Usage: %s file.mdl [hexen2]", argv[0]);
+	if(argc < 3) {
+		error("usage: %s mesh.md2 texture", argv[0]);
 		return 0;
 	}
-	if(!mdl) {
-		error("couldn't load MDL file '%s'", argv[1]);
+	md2 = md2_load(argv[1]);
+	if(!md2) {
+		error("couldn't load MD2 file %s", argv[1]);
 		return 0;
 	}
+
+	tex = bm_load(argv[2]);
+	if(!tex) {
+		error("couldn't load texture %s", argv[2]);
+		return 0;
+	}
+	fx_set_texture(tex);
 
 	fx_set_viewport(screen);
 
@@ -67,6 +72,7 @@ int init_thing(int argc, char *argv[]) {
 	/* To use transparent pixels on the texture map, set
 		the color of the texture, and enable transparency */
 	// fx_transparent(1);
+	bm_set_color(tex, 0x404040);
 
 	double projection[16];
 	double ratio = (double)bm_width(screen) / bm_height(screen);
@@ -78,9 +84,10 @@ int init_thing(int argc, char *argv[]) {
 
 void deinit_thing() {
 	fx_cleanup();
+	bm_free(tex);
 	bm_free(pick_buffer);
-	if(mdl) {
-		mdl_free(mdl);
+	if(md2) {
+		md2_free(md2);
 	}
 }
 
@@ -114,6 +121,7 @@ void update_screen(int64_t ms) {
 	static int pause = 0;
 	if(!pause)
 		theta += 0.01 * elapsedSeconds * 360 / M_PI;
+
 	if(key_pressed('P')) {
 		pause = !pause;
 	}
@@ -158,11 +166,10 @@ void update_screen(int64_t ms) {
 
 	static double current_frame = 0;
 	current_frame += 5 * elapsedSeconds;
-
-	if(current_frame >= mdl->total_frames)
+	//if(current_frame > 39)
+	if(current_frame >= md2->header.n_frames)
 		current_frame = 0;
-
-    mdl_draw(mdl, current_frame);
+    md2_draw(md2, current_frame);
 
 	if(key_pressed(KEY_ESCAPE)) {
 		quit = 1;
