@@ -29,6 +29,8 @@
 #  define MD5_VERBOSE 0
 #endif
 
+#define WARN_NO_TEXTURE 0
+
 #ifndef MD5_NODRAW
 #  include "bmph.h"
 #  include "fx.h"
@@ -688,11 +690,10 @@ void md5_draw(MD5_MODEL *m) {
         if(md5_cache) {
             Bitmap *tex = bc_get(md5_cache, me->shader);
             if(!tex) {
-#ifdef WARN_NO_TEXTURE
+#if WARN_NO_TEXTURE
                 fx_error("no texture for %s", me->shader);
-#else
-                continue;
 #endif
+                continue;
             }
             fx_set_texture(tex);
         }
@@ -857,11 +858,10 @@ void md5_draw_frame(MD5_MODEL *m, MD5_ANIM *a, double frame) {
         if(md5_cache) {
             Bitmap *tex = bc_get(md5_cache, me->shader);
             if(!tex) {
-#ifdef WARN_NO_TEXTURE
+#if WARN_NO_TEXTURE
                 fx_error("no texture for %s", me->shader);
-#else
-                continue;
 #endif
+                continue;
             }
             fx_set_texture(tex);
         }

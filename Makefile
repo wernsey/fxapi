@@ -9,10 +9,11 @@ SRC_DIR := src
 OBJ_DIR := obj
 
 OBJECTS=$(SOURCES:.c=.o)
+LIB=libfx.a
 TEST1=test1/app
 MDL_TEST=mdl-test/test
 MD2_TEST=md2-test/test
-LIB=libfx.a
+MD5_TEST=md5-test/test
 
 ifeq ($(BUILD),debug)
 # Debug
@@ -61,7 +62,7 @@ endif
 SRC := $(wildcard $(SRC_DIR)/*.c)
 OBJ=$(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-all: $(LIB) $(TEST1) $(MDL_TEST) $(MD2_TEST)
+all: $(LIB) $(TEST1) $(MDL_TEST) $(MD2_TEST) $(MD5_TEST)
 
 lib: $(LIB)
 
@@ -77,6 +78,10 @@ $(MDL_TEST): mdl-test/mdl-test.o framewrk/game.o $(LIB)
 	@$(CC) $^ $(LDFLAGS) -o $@
 
 $(MD2_TEST): md2-test/md2-test.o framewrk/game.o $(LIB)
+	@echo $@
+	@$(CC) $^ $(LDFLAGS) -o $@
+
+$(MD5_TEST): md5-test/md5-test.o framewrk/game.o $(LIB)
 	@echo $@
 	@$(CC) $^ $(LDFLAGS) -o $@
 
@@ -97,6 +102,10 @@ mdl-test/%.o: mdl-test/%.c
 	@$(CC) $(CFLAGS) -I ./framewrk -c $< -o $@
 
 md2-test/%.o: md2-test/%.c
+	@echo $@
+	@$(CC) $(CFLAGS) -I ./framewrk -c $< -o $@
+
+md5-test/%.o: md5-test/%.c
 	@echo $@
 	@$(CC) $(CFLAGS) -I ./framewrk -c $< -o $@
 
@@ -125,6 +134,8 @@ mdl-test/mdl-test.o: mdl-test/mdl-test.c extra/bmph.h framewrk/game.h \
  extra/glmatrix.h include/fx.h include/mdl.h framewrk/fenster.h
 md2-test/md2-test.o: md2-test/md2-test.c extra/bmph.h framewrk/game.h \
  extra/glmatrix.h include/fx.h include/md2.h framewrk/fenster.h
+md5-test/md5-test.o: md5-test/md5-test.c extra/bmph.h framewrk/game.h \
+ extra/glmatrix.h include/fx.h include/md5.h framewrk/fenster.h
 
 
 # Hide warnings in stb_image.h
@@ -142,6 +153,7 @@ deps:
 	@$(CC) -MM -I ./include -I ./extra -I ./framewrk framewrk/*.c |  sed 's/\(.*\.o:\)/framewrk\/\1/'
 	@$(CC) -MM -I ./include -I ./extra -I ./framewrk mdl-test/*.c |  sed 's/\(.*\.o:\)/mdl-test\/\1/'
 	@$(CC) -MM -I ./include -I ./extra -I ./framewrk md2-test/*.c |  sed 's/\(.*\.o:\)/md2-test\/\1/'
+	@$(CC) -MM -I ./include -I ./extra -I ./framewrk md5-test/*.c |  sed 's/\(.*\.o:\)/md5-test\/\1/'
 
 clean:
 	@echo Cleaning...
@@ -150,6 +162,7 @@ clean:
 	@-rm -f $(TEST1) test1/*.o
 	@-rm -f $(MDL_TEST) mdl-test/*.o
 	@-rm -f $(MD2_TEST) md2-test/*.o
+	@-rm -f $(MD5_TEST) md5-test/*.o
 	@-rm -f framewrk/*.o
 	@-rm -f out.gif pick.gif
 	@-rm -f dist.zip
