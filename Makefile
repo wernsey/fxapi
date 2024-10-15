@@ -14,6 +14,7 @@ TEST1=test1/app
 MDL_TEST=mdl-test/test
 MD2_TEST=md2-test/test
 MD5_TEST=md5-test/test
+OBJ_TEST=obj-test/test
 
 ifeq ($(BUILD),debug)
 # Debug
@@ -62,28 +63,12 @@ endif
 SRC := $(wildcard $(SRC_DIR)/*.c)
 OBJ=$(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-all: $(LIB) $(TEST1) $(MDL_TEST) $(MD2_TEST) $(MD5_TEST)
+all: $(LIB) $(TEST1) $(MDL_TEST) $(MD2_TEST) $(MD5_TEST) $(OBJ_TEST)
 
 lib: $(LIB)
 
 debug:
 	$(MAKE) BUILD=debug
-
-$(TEST1): test1/main.o $(LIB)
-	@echo $@
-	@$(CC) $^ $(LDFLAGS) -o $@
-
-$(MDL_TEST): mdl-test/mdl-test.o framewrk/game.o $(LIB)
-	@echo $@
-	@$(CC) $^ $(LDFLAGS) -o $@
-
-$(MD2_TEST): md2-test/md2-test.o framewrk/game.o $(LIB)
-	@echo $@
-	@$(CC) $^ $(LDFLAGS) -o $@
-
-$(MD5_TEST): md5-test/md5-test.o framewrk/game.o $(LIB)
-	@echo $@
-	@$(CC) $^ $(LDFLAGS) -o $@
 
 $(LIB): $(OBJ)
 	@echo $@
@@ -93,29 +78,53 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	@echo $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(OBJ_DIR):
+	@echo $@
+	@mkdir -p $@
+
+$(TEST1): test1/main.o $(LIB)
+	@echo $@
+	@$(CC) $^ $(LDFLAGS) -o $@
+
 test1/%.o: test1/%.c
 	@echo $@
 	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(MDL_TEST): mdl-test/mdl-test.o framewrk/game.o $(LIB)
+	@echo $@
+	@$(CC) $^ $(LDFLAGS) -o $@
 
 mdl-test/%.o: mdl-test/%.c
 	@echo $@
 	@$(CC) $(CFLAGS) -I ./framewrk -c $< -o $@
 
+$(MD2_TEST): md2-test/md2-test.o framewrk/game.o $(LIB)
+	@echo $@
+	@$(CC) $^ $(LDFLAGS) -o $@
+
 md2-test/%.o: md2-test/%.c
 	@echo $@
 	@$(CC) $(CFLAGS) -I ./framewrk -c $< -o $@
 
+$(MD5_TEST): md5-test/md5-test.o framewrk/game.o $(LIB)
+	@echo $@
+	@$(CC) $^ $(LDFLAGS) -o $@
+
 md5-test/%.o: md5-test/%.c
+	@echo $@
+	@$(CC) $(CFLAGS) -I ./framewrk -c $< -o $@
+
+$(OBJ_TEST): obj-test/obj-test.o framewrk/game.o $(LIB)
+	@echo $@
+	@$(CC) $^ $(LDFLAGS) -o $@
+
+obj-test/%.o: obj-test/%.c
 	@echo $@
 	@$(CC) $(CFLAGS) -I ./framewrk -c $< -o $@
 
 framewrk/%.o: framewrk/%.c
 	@echo $@
 	@$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ_DIR):
-	@echo $@
-	@mkdir -p $@
 
 # Add header dependencies here
 
@@ -154,6 +163,7 @@ deps:
 	@$(CC) -MM -I ./include -I ./extra -I ./framewrk mdl-test/*.c |  sed 's/\(.*\.o:\)/mdl-test\/\1/'
 	@$(CC) -MM -I ./include -I ./extra -I ./framewrk md2-test/*.c |  sed 's/\(.*\.o:\)/md2-test\/\1/'
 	@$(CC) -MM -I ./include -I ./extra -I ./framewrk md5-test/*.c |  sed 's/\(.*\.o:\)/md5-test\/\1/'
+	@$(CC) -MM -I ./include -I ./extra -I ./framewrk obj-test/*.c |  sed 's/\(.*\.o:\)/obj-test\/\1/'
 
 clean:
 	@echo Cleaning...

@@ -8,11 +8,14 @@ app
 .gdbinit
 .vscode
 
+# I put my test models in these directories,
+# but I cannot redistribute them.
 mdl-test/mdl/*
 md2-test/md2/*
 md5-test/md5/*
+obj-test/obj/*
 
-# Output files of the test program
+# Output files of the test programs
 out.gif
 pick.gif
 *.log
