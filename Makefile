@@ -10,6 +10,7 @@ OBJ_DIR := obj
 
 OBJECTS=$(SOURCES:.c=.o)
 TEST1=test1/app
+MDL_TEST=mdl-test/mdl
 LIB=libfx.a
 
 ifeq ($(BUILD),debug)
@@ -23,13 +24,43 @@ LDFLAGS += -s
 endif
 
 ifeq ($(OS),Windows_NT)
-  TEST1:=$(TEST1).exe
+
+endif
+
+ifdef EMSDK
+	# TODO needs some work before the Emscripten version will work...
+	CC = emcc
+	LDFLAGS += -s ASYNCIFY -s ASYNCIFY_IGNORE_INDIRECT
+	WEB_DIR = web
+	WEB = $(WEB_DIR)/index.html
+	ALL = $(WEB)
+	OBJ_DIR = wobj
+else
+	TEST1:=$(TEST1).exe
+	MDL_TEST:=$(MDL_TEST).exe
+
+	ALL = $(EXECUTABLE) $(RPGTEST) $(EDITOR) $(PCXER) $(PACK)
+	ifeq ($(OS),Windows_NT)
+		LDFLAGS = -lgdi32
+		EXECUTABLE := $(EXECUTABLE).exe
+		EDITOR := $(EDITOR).exe
+		RPGTEST := $(RPGTEST).exe
+		PCXER := $(PCXER).exe
+		PACK := $(PACK).exe
+	else
+		UNAME_S := $(shell uname -s)
+		ifeq ($(UNAME_S),Darwin)
+			LDFLAGS = -framework Cocoa
+		else
+			LDFLAGS = -lX11 -lm
+		endif
+	endif
 endif
 
 SRC := $(wildcard $(SRC_DIR)/*.c)
 OBJ=$(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-all: $(TEST1) $(LIB)
+all: $(LIB) $(TEST1) $(MDL_TEST)
 
 lib: $(LIB)
 
@@ -37,6 +68,10 @@ debug:
 	$(MAKE) BUILD=debug
 
 $(TEST1): test1/main.o $(LIB)
+	@echo $@
+	@$(CC) $^ $(LDFLAGS) -o $@
+
+$(MDL_TEST): mdl-test/mdl-test.o framewrk/game.o $(LIB)
 	@echo $@
 	@$(CC) $^ $(LDFLAGS) -o $@
 
@@ -49,6 +84,14 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 test1/%.o: test1/%.c
+	@echo $@
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+mdl-test/%.o: mdl-test/%.c
+	@echo $@
+	@$(CC) $(CFLAGS) -I ./framewrk -c $< -o $@
+
+framewrk/%.o: framewrk/%.c
 	@echo $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -67,6 +110,10 @@ $(OBJ_DIR)/mdl.o: src/mdl.c extra/bmph.h include/mdl.h include/fx.h
 $(OBJ_DIR)/obj.o: src/obj.c include/fx.h include/obj.h
 $(OBJ_DIR)/shapes.o: src/shapes.c include/fx.h include/shapes.h extra/par_shapes.h
 test1/main.o: test1/main.c extra/bmph.h include/fx.h extra/glmatrix.h
+mdl-test/mdl-test.o: mdl-test/mdl-test.c framewrk/game.h extra/bmph.h \
+ extra/glmatrix.h include/fx.h include/mdl.h framewrk/fenster.h
+framewrk/game.o: framewrk/game.c framewrk/fenster.h framewrk/game.h extra/bmph.h
+
 
 .PHONY : clean dist
 
@@ -77,11 +124,15 @@ dist.zip: clean
 deps:
 	@$(CC) -MM -I ./include -I ./extra $(SRC) |  sed 's/\(.*\.o:\)/$$(OBJ_DIR)\/\1/'
 	@$(CC) -MM -I ./include -I ./extra test1/*.c |  sed 's/\(.*\.o:\)/test1\/\1/'
+	@$(CC) -MM -I ./include -I ./extra -I ./framewrk mdl-test/*.c |  sed 's/\(.*\.o:\)/mdl-test\/\1/'
+	@$(CC) -MM -I ./include -I ./extra -I ./framewrk framewrk/*.c |  sed 's/\(.*\.o:\)/framewrk\/\1/'
 
 clean:
 	@echo Cleaning...
 	@-rm -f $(LIB)
 	@-rm -rf $(OBJ_DIR) $(WEB_DIR)
 	@-rm -f $(TEST1) test1/*.o
+	@-rm -f $(MDL_TEST) mdl-test/*.o
+	@-rm -f framewrk/*.o
 	@-rm -f out.gif pick.gif
 	@-rm -f dist.zip

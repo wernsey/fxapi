@@ -9,6 +9,8 @@ The renderer uses Barycentric coordinates for texture mapping as in
 rasterizer at some point, but I had some trouble with the perspective
 correction, and didn't get around to finishing it.
 
+ The demo applications use the [fenster][] cross-platform library by GitHub user zserge.
+
 ## Links
 
  * Dmitry V. Sokolov's [tinyrenderer][] tutorial
@@ -38,6 +40,7 @@ Other references
     * <https://www.braynzarsoft.net/viewtutorial/q16390-27-loading-an-md5-model>
     * <https://lwjglgamedev.gitbooks.io/3d-game-development-with-lwjgl/content/chapter19/chapter19.html>
 
+
 In the future I might consider adding support for these file formats:
 
 * [STL](https://en.wikipedia.org/wiki/STL_(file_format))
@@ -48,3 +51,4 @@ In the future I might consider adding support for these file formats:
 [bitmap]: https://github.com/wernsey/bitmap
 [tinyrenderer]: https://github.com/ssloy/tinyrenderer/wiki/Lesson-0-getting-started
 [scratchapixel]: https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/perspective-correct-interpolation-vertex-attributes
+[fenster]: https://github.com/zserge/fenster

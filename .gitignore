@@ -8,6 +8,9 @@ app
 .gdbinit
 .vscode
 
+mdl-test/mdl/*
+
 # Output files of the test program
 out.gif
 pick.gif
+*.log

@@ -155,7 +155,10 @@ uint8_t mdl_hexen2_palette[] = {
 static uint8_t *palette = mdl_quake_palette;
 
 void mdl_set_palette(uint8_t *pal) {
-    palette = pal;
+    if(pal)
+        palette = pal;
+    else
+        palette = mdl_quake_palette;
 }
 
 static Bitmap *read_texture(FILE *f, int w, int h) {

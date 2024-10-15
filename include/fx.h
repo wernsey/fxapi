@@ -20,6 +20,11 @@ typedef numeric_t *mat4_t;
 typedef struct Bitmap Bitmap;
 #endif
 
+#ifndef M_PI
+/* VSCode has trouble with this... */
+#  define M_PI 3.14159
+#endif
+
 typedef enum {FX_TRIANGLES, FX_TRIANGLE_STRIP, FX_TRIANGLE_FAN} fx_mode;
 
 typedef enum {FX_FOG_NONE = 0, FX_FOG_LINEAR, FX_FOG_EXP, FX_FOG_EXP2} fg_fog_type;
